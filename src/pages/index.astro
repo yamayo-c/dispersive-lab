@@ -1,0 +1,34 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const entries = (await getCollection("phenomena")).sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout>
+  <h1>非線形分散型方程式の数値実験</h1>
+  <p class="lead">
+    非線形 Schrödinger 方程式などの分散型方程式で起きる現象を、ブラウザの中で計算して見せます。
+    各ページには、解説と動くシミュレーション、そしてその計算が数値の誤りでないことを確かめた検証を載せています。
+  </p>
+
+  <ul class="phenomenon-list">
+    {
+      entries.map((e) => (
+        <li>
+          <a class="phenomenon-card" href={`/phenomena/${e.id}/`}>
+            <h2>{e.data.title}</h2>
+            <p>{e.data.summary}</p>
+            {e.data.tags.length > 0 && (
+              <ul class="tags">
+                {e.data.tags.map((t) => (
+                  <li>{t}</li>
+                ))}
+              </ul>
+            )}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>

@@ -1,0 +1,54 @@
+---
+import type { CollectionEntry } from "astro:content";
+import katex from "katex";
+import Simulation from "../components/Simulation";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  entry: CollectionEntry<"phenomena">;
+}
+
+const { entry } = Astro.props;
+const { title, summary, equation, verification } = entry.data;
+const equationHtml = katex.renderToString(equation, { displayMode: true, throwOnError: true });
+
+const KIND_LABEL = {
+  conservation: "保存量",
+  convergence: "収束",
+  exact: "厳密解",
+} as const;
+
+const repo = "https://github.com/yamayo-c/dispersive-lab/blob/main";
+const testUrl = `${repo}/src/content/phenomena/${entry.id}/verify.test.ts`;
+const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
+---
+
+<BaseLayout title={title} description={summary}>
+  <article>
+    <h1>{title}</h1>
+    <p class="lead">{summary}</p>
+    <div set:html={equationHtml} />
+
+    <Simulation slug={entry.id} client:only="react" />
+
+    <slot />
+
+    <section class="verification" aria-labelledby="verification-heading">
+      <h2 id="verification-heading">この計算の検証</h2>
+      <ul>
+        {
+          verification.map((v) => (
+            <li>
+              <span class="kind">{KIND_LABEL[v.kind]}</span>
+              {v.description}
+            </li>
+          ))
+        }
+      </ul>
+      <p>
+        上の検証は、このページと同じ solver を Node で動かすテスト（<a href={testUrl}>verify.test.ts</a>）として、変更のたびに
+        CI で実行しています。初期値とパラメータの定義は <a href={simUrl}>sim.ts</a> にあります。
+      </p>
+    </section>
+  </article>
+</BaseLayout>

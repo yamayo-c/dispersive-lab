@@ -5,3 +5,7 @@
 
 収益は目的にしない。計算はすべてブラウザ側で行い、サイトの実行時に AI は使わない。
 ページの追加は、Notion で管理する題材をもとにスケジュール実行のエージェントが PR を出し、人がレビューしてマージする。
+
+- サイト: https://dispersive-lab.web.app
+- 技術: Astro + React（シミュレーション部分）+ MDX + KaTeX。solver は TypeScript（倍精度）で、ブラウザでは Web Worker、CI では Node で同じコードを動かして数値検証する。
+- 開発の手順とコマンドは [CLAUDE.md](CLAUDE.md)、ページの追加は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。

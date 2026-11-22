@@ -1,0 +1,17 @@
+---
+import type { GetStaticPaths } from "astro";
+import { getCollection, render } from "astro:content";
+import PhenomenonLayout from "../../layouts/PhenomenonLayout.astro";
+
+export const getStaticPaths = (async () => {
+  const entries = await getCollection("phenomena");
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}) satisfies GetStaticPaths;
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<PhenomenonLayout entry={entry}>
+  <Content />
+</PhenomenonLayout>
