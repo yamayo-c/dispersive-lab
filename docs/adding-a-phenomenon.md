@@ -43,6 +43,10 @@ summary: 一覧に出す 1〜2 文の説明
 equation: i\,\partial_t u + \partial_x^2 u = 0   # KaTeX の display 数式。$$ は付けない
 order: 20               # 一覧での並び順（小さい順）
 tags: [線形 Schrödinger, 分散]
+reviewed: false         # 省略可（既定 false）。新しいページは必ず false。下の「公開後レビュー」を参照
+preprint:               # 任意。査読前の preprint に基づくページだけ書く
+  arxiv: "2401.01234"   # arXiv の番号（版の v は付けない。旧形式 math/0601001 も可）。文字列として引用符で囲む
+  version: 2            # 基にした版
 verification:           # 「この計算の検証」欄。verify.test.ts のテストと対応させる
   - kind: exact         # conservation（保存量）/ convergence（収束）/ exact（厳密解）
     description: 何をどの閾値で確かめたか（実測値も書く）
@@ -53,7 +57,7 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 1. **何が起きているか** — 現象と、それを支える数学（分散関係、保存則、厳密解など）。シミュレーションのどのパラメータを動かすと何が見えるか。
 2. **計算の方法** — 使った数値解法と、その誤差の性質。周期境界などの設定が現象の見え方に影響するならそれも書く。
 
-ページの上部（題名・方程式・シミュレーション）と下部（検証欄）はレイアウト（`src/layouts/PhenomenonLayout.astro`）が出すので、本文には書かない。
+ページの上部（題名・「未査読」と preprint の注記・方程式・シミュレーション）と下部（検証欄）はレイアウト（`src/layouts/PhenomenonLayout.astro`）が出すので、本文には書かない。
 
 ## 4. verify.test.ts（必須）
 
@@ -72,7 +76,7 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 - 閾値は実測値に余裕を持たせて決め、実測値は `console.info` で出す（`npx vitest run --reporter=verbose` で見える）。`index.mdx` の `verification` にも実測値を書く。
 - `index.mdx` の `verification` に書いた `kind` ごとに、対応する付箋のテストを置く（`tests/conventions.test.ts` が確かめる）。
 
-`tests/conventions.test.ts` は次も確かめる: 3 ファイルがそろっている、slug の形式、`sim.ts` の既定値で `setup` でき `tEnd` が `dt` の整数倍で n が 2 のべき。
+`tests/conventions.test.ts` は次も確かめる: 3 ファイルがそろっている、slug の形式、frontmatter がスキーマ（`src/lib/frontmatter.ts`。reviewed・preprint を含む）に合う、`sim.ts` の既定値で `setup` でき `tEnd` が `dt` の整数倍で n が 2 のべき。
 
 ## 5. 新しい方程式・solver が要るとき
 
@@ -91,4 +95,32 @@ npm run build     # 静的サイトを dist/ に出力
 npm run preview   # dist/ を http://localhost:4321 で表示して、ページが動くか確かめる
 ```
 
-PR の本文には、検証テストの実測値（誤差、収束の次数、保存量のずれ）を書く。
+PR の本文には、検証テストの実測値（誤差、収束の次数、保存量のずれ）を書く。preprint に基づくページなら、arXiv の番号と版も書く。
+
+## 7. 公開後レビュー
+
+CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージされ、本番に公開される。ユーザー（著者）のレビューは公開の **あと** に行う。そのため、著者が数学的な内容を確かめるまでは、ページに「未査読」の印を出す。
+
+### reviewed（未査読の印）
+
+- `reviewed: false`（または省略）のページには、題名の下に「未査読」の印と「自動で生成し、数値検証が通った時点で公開している。著者による数学的な確認はまだ」という注記が出て、一覧のカードにも「未査読」の印が付く。
+- 新しいページは必ず `reviewed: false` で出す。`reviewed: true` にしてよいのは、ユーザーが Notion のカードを「公開済み」に移したページだけ（下の「査読済みにする」）。
+
+### preprint
+
+- 査読前の preprint（arXiv など）に基づくページは `preprint: { arxiv, version }` を書く。ページに「査読前の preprint に基づく」旨と arXiv の版つきのページ（`https://arxiv.org/abs/<番号>v<版>`）へのリンクが出て、一覧のカードにも「preprint」の印が付く。
+- 番号と版は、実際に arXiv で確かめたものだけを書く。新しい版に合わせてページを直したら `version` も上げる。
+- preprint が雑誌に載っても、この欄は基にした版を記録するものなので、ページの内容を見直すまでは残す。
+
+### 査読済みにする
+
+ユーザーが Notion のカードを「公開済み」に移したら、そのページの `index.mdx` の `reviewed: false` を `reviewed: true` に変える **だけ** の PR を出す（ブランチ例: `reviewed/<slug>`）。ほかの変更を混ぜない。CI が通れば自動でマージされ、「未査読」の印が消える。
+
+### 取り下げる
+
+ユーザーが Notion のカードを「取り下げ」に移したら、そのページの **フォルダごと**（`src/content/phenomena/<slug>/`）削除する PR を出す（ブランチ例: `withdraw/<slug>`）。
+
+- PR の本文に、取り下げの理由（Notion のカードのコメント）を書き写す。
+- ほかのページ・docs からそのページへのリンクがあれば、同じ PR で外す（`git grep <slug>` で探す）。
+- CI が通れば自動でマージされ、ページと一覧から消える。
+- 消したページの URL は 404 になる。中身は git の履歴に残るので、あとで直して出し直すときはそこから戻せる。
