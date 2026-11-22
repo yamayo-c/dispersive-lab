@@ -44,10 +44,10 @@ firebase hosting:channel:deploy pr-<番号> --expires 7d
 # gcloud は uv の Python を指定して動かす（そのままでは Microsoft Store のエイリアスに解決されて動かない）
 export CLOUDSDK_PYTHON=$(uv python find)
 gcloud iam service-accounts create github-deploy --project dispersive-lab --display-name "GitHub Actions deploy"
-gcloud projects add-iam-policy-binding dispersive-lab   --member serviceAccount:github-deploy@dispersive-lab.iam.gserviceaccount.com   --role roles/firebasehosting.admin --condition=None
+gcloud projects add-iam-policy-binding dispersive-lab --member serviceAccount:github-deploy@dispersive-lab.iam.gserviceaccount.com --role roles/firebasehosting.admin --condition=None
 KEY=$(mktemp -d)/key.json
-gcloud iam service-accounts keys create "$KEY"   --iam-account github-deploy@dispersive-lab.iam.gserviceaccount.com
-GH_TOKEN=$(gh auth token --user yamayo-c) gh secret set FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB   --repo yamayo-c/dispersive-lab < "$KEY"
+gcloud iam service-accounts keys create "$KEY" --iam-account github-deploy@dispersive-lab.iam.gserviceaccount.com
+GH_TOKEN=$(gh auth token --user yamayo-c) gh secret set FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB --repo yamayo-c/dispersive-lab < "$KEY"
 rm -f "$KEY"
 ```
 
