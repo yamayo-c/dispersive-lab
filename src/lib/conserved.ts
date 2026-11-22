@@ -1,0 +1,55 @@
+import { FFT, wavenumbers } from "../solvers/fft";
+import { gridSpacing, type ComplexField, type Grid1D } from "../solvers/grid";
+import type { SchrodingerEquation } from "../solvers/schrodinger";
+
+/**
+ * 質量  M[u] = ∫ |u|² dx。
+ * 周期関数の台形則（= 矩形則）で、帯域制限された関数にはスペクトル精度。
+ */
+export function mass(grid: Grid1D, u: ComplexField): number {
+  let s = 0;
+  for (let j = 0; j < grid.n; j++) s += u.re[j]! * u.re[j]! + u.im[j]! * u.im[j]!;
+  return s * gridSpacing(grid);
+}
+
+/**
+ * ∫ |u_x|² dx を Parseval の等式で計算する:  (L / n²) Σ_k k² |û_k|²。
+ * k² は Nyquist 波数の符号によらないので、微分の符号のあいまいさが入らない。
+ */
+export function gradientNormSquared(grid: Grid1D, u: ComplexField, fft: FFT = new FFT(grid.n)): number {
+  const re = u.re.slice();
+  const im = u.im.slice();
+  fft.forward(re, im);
+  const k = wavenumbers(grid.n, grid.length);
+  let s = 0;
+  for (let j = 0; j < grid.n; j++) s += k[j]! * k[j]! * (re[j]! * re[j]! + im[j]! * im[j]!);
+  return (s * grid.length) / (grid.n * grid.n);
+}
+
+/**
+ * i u_t + α u_xx + κ|u|²u = 0 のエネルギー（Hamiltonian）
+ *
+ *     E[u] = ∫ ( α |u_x|² − (κ/2) |u|⁴ ) dx.
+ *
+ * i u_t = δE/δū の形になっていて、滑らかな解では時間によらない。
+ */
+export function schrodingerEnergy(
+  grid: Grid1D,
+  u: ComplexField,
+  eq: SchrodingerEquation,
+  fft: FFT = new FFT(grid.n),
+): number {
+  let quartic = 0;
+  for (let j = 0; j < grid.n; j++) {
+    const r2 = u.re[j]! * u.re[j]! + u.im[j]! * u.im[j]!;
+    quartic += r2 * r2;
+  }
+  quartic *= gridSpacing(grid);
+  return eq.alpha * gradientNormSquared(grid, u, fft) - (eq.kappa / 2) * quartic;
+}
+
+/** 基準値 ref からの相対的なずれ |q − ref| / |ref|（ref = 0 のときは絶対値） */
+export function relativeDrift(q: number, ref: number): number {
+  const d = Math.abs(q - ref);
+  return ref === 0 ? d : d / Math.abs(ref);
+}
