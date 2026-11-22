@@ -39,7 +39,7 @@ firebase deploy --only hosting   # 手元から本番へデプロイ（build の
 ```
 
 - Markdown の処理系は Astro 7 の既定（Sätteri）ではなく `unified()`（`@astrojs/markdown-remark`）にして、remark-math + rehype-katex を使っている（`astro.config.mjs`）。
-- デプロイと、未導入の GitHub Actions からの自動デプロイの手順は [docs/deploy.md](docs/deploy.md)。
+- PR ではプレビューチャンネルに、main へのマージで本番に GitHub Actions が自動でデプロイする（`preview.yml`・`deploy.yml`）。資格情報と手順は [docs/deploy.md](docs/deploy.md)。
 
 ## 題材の管理（Notion）
 

@@ -1,0 +1,35 @@
+name: 本番デプロイ
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# 本番へのデプロイは同時に 1 つだけ。途中のものは止めずに順に流す
+concurrency:
+  group: deploy-live
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: テスト（数値検証を含む）
+        run: npm test
+      - name: ビルド
+        run: npm run build
+      - name: Firebase Hosting（本番）へデプロイ
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB }}
+          projectId: dispersive-lab
+          channelId: live
