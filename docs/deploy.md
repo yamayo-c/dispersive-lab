@@ -84,7 +84,7 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 
 ## 読者が文章で実験を頼む機能（凍結中）
 
-2026-11-23 に PR #9・#10 で入れ、同日に PR #14 でサイトから外した（コードは削除）。戻すときは、PR #14 を revert し、Firebase AI Logic の API（`firebasevertexai.googleapis.com`）を有効にしてブラウザ用 API キーの使える API に足し直す（App Check・reCAPTCHA キー・サーバー側テンプレート `experiment-request`・テンプレート専用モード・クォータは残してある）。費用の上限は、戻す PR の時点の [数式の照合](#数式の照合gemini) と足して計算し直す。
+2026-11-23 に PR #9・#10 で入れ、同日に PR #14 でサイトから外した（コードは削除）。戻すときは、PR #14 を revert し、Firebase AI Logic の API（`firebasevertexai.googleapis.com`）を有効にし、新しいブラウザ用 API キーを作って（使える API を App Check と AI Logic に、リファラーを本番と localhost に制限）`src/lib/firebaseConfig.ts` の `apiKey` を差し替える（旧キーは漏えいの検出を受けて 2026-11-23 に削除した。App Check・reCAPTCHA キー・サーバー側テンプレート `experiment-request`・テンプレート専用モード・クォータは残してある）。費用の上限は、戻す PR の時点の [数式の照合](#数式の照合gemini) と足して計算し直す。
 
 ## 数式の照合（Gemini）
 
