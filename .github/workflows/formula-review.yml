@@ -1,0 +1,67 @@
+name: 数式の照合
+
+# 現象ページ（src/content/phenomena/<slug>/）を変える PR では、解説（index.mdx）と実装（sim.ts・solver・src/lib）を
+# Gemini に照合させ、明白な不一致があればジョブ formula-review を失敗させて自動マージを止める
+# （main のブランチ保護で必須チェックにしている）。結果は PR のコメント（1 つを更新し続ける）に書く。
+#   formula-review-approved … 編集担当が誤検知と判断したときに付ける。付いていれば AI を呼ばずに成功する。
+#                             照合したあとにページのファイルが変わったら外れて、照合し直す
+# 同じ入力（ページ・参照のファイル・プロンプト）の結果は使い回すので、ラベルの付け外しやページ以外の push では AI を呼ばない。
+# 手順は docs/adding-a-phenomenon.md の「数式の照合」、費用の上限は docs/deploy.md、照合の本体は scripts/formula-review.ts。
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+# 照合の途中で止めると費用だけかかるので、実行中のものは取り消さずに順に流す
+concurrency:
+  group: formula-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  formula-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: 照合の対象（変わったページ）
+        id: targets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          slugs=$(node scripts/formula-review.ts targets "$BASE_SHA" "$HEAD_SHA")
+          echo "対象: ${slugs:-なし}"
+          echo "slugs=$slugs" >> "$GITHUB_OUTPUT"
+      # フォークからの PR ではシークレットが使えないので認証しない（照合は失敗し、編集担当の判断を待つ）
+      - name: Google Cloud の認証
+        id: auth
+        if: steps.targets.outputs.slugs != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB }}
+      - if: steps.auth.outcome == 'success'
+        uses: google-github-actions/setup-gcloud@v3
+      - name: 照合
+        if: steps.targets.outputs.slugs != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          AUTHED: ${{ steps.auth.outcome == 'success' }}
+        run: |
+          if [ "$AUTHED" = true ]; then
+            VERTEX_TOKEN=$(gcloud auth print-access-token)
+            echo "::add-mask::$VERTEX_TOKEN"
+            export VERTEX_TOKEN
+          fi
+          node scripts/formula-review.ts pr
