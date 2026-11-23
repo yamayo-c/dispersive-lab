@@ -9,7 +9,7 @@
 - ホスティングは Firebase Hosting。main へのマージで本番に、PR ではプレビューチャンネルにデプロイする。
 - AI を数学的な主張の出どころにしない。ページに載る主張は、solver の計算と検証テスト、または出典に基づくものだけ。
 - AI は計算の入口と周辺（読者の問いを実験の設定に変えるなど）に使う。結果を言うのは solver。
-- AI の費用は月 $10 以内に、1 日の回数上限で固定する（読者の実験は App Check の交換の上限、数式の照合は作成専用の印）。根拠と設定は [docs/deploy.md](docs/deploy.md)。
+- AI の費用は月 $10 以内に、1 日の回数上限で固定する（数式の照合は作成専用の印で 1 日 1 回）。根拠と設定は [docs/deploy.md](docs/deploy.md)。
 - ライセンス: コードは MIT（`LICENSE`）、解説の本文（`index.mdx`）は CC BY 4.0（`LICENSE-CONTENT`）。他者の図や文章を転載しない（引用は出典を明記する範囲にとどめる）。
 - README.md は公開リポジトリの読者向け。運用の手順（Notion・エージェント・公開後レビュー）は CLAUDE.md と docs に書き、README には書かない。
 
@@ -37,9 +37,8 @@
 ## 構成
 
 - `src/solvers/` — FFT と方程式ごとの時間発展（今は周期境界 1 次元の Strang 分割 split-step Fourier: `i u_t + α u_xx + κ|u|²u = 0`）。
-- `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）、事前計算の型（`precompute.ts`）、読者が文章で頼んだ実験の設定と計算（`experiment.ts`）・AI の返答の検証（`request.ts`）。
-- `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算、`RequestForm.tsx`・`ExperimentPanel.tsx` が文章で実験を頼む欄）。パラメータと頼んだ実験の設定は URL のクエリに保存する。
-- `ai/experiment-request.prompt` — 文章を実験の設定に変える Firebase AI Logic のサーバー側テンプレート（登録の手順は [docs/deploy.md](docs/deploy.md)）。
+- `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）、事前計算の型（`precompute.ts`）。
+- `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。事前計算だけのページは `sim.ts` の代わりに `precompute.ts`。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
 - `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。
 
