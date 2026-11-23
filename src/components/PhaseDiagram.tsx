@@ -192,7 +192,7 @@ export default function PhaseDiagram() {
     forbidden.push([clip(3 * y * y - 2 * y ** 3, X.lo, X.hi), y]);
   }
   const forbiddenPath =
-    `M ${qx(X.hi)} ${qy(0)} ` + forbidden.map(([x, y]) => `L ${qx(x).toFixed(1)} ${qy(y).toFixed(1)}`).join(" ") + ` L ${qx(X.hi)} ${qy(Y.hi)} Z`;
+    `M ${qx(X.lo)} ${qy(0)} ` + forbidden.map(([x, y]) => `L ${qx(x).toFixed(1)} ${qy(y).toFixed(1)}`).join(" ") + ` L ${qx(X.lo)} ${qy(Y.hi)} Z`;
 
   const active = hover ?? sel;
   const activePoint = active ? rows[active.row]!.points[active.i]! : null;
@@ -295,13 +295,13 @@ export default function PhaseDiagram() {
             </text>
           </svg>
           <figcaption>
-            (p, γ) の地図。破線の内側の左が「定理で散乱」（x &lt; 1, y &lt; 1）、右の破線より右が「定理で爆発」（x &lt; 1, y &gt; 1）。黒い線は γ ごとに二分法で求めた閾値。
+            (p, γ) の地図。実線は γ ごとに二分法で求めた閾値。破線は x = 1 と y = 1 の曲線で、いちばん左の破線より左（x &lt; 1, y &lt; 1）が「定理で散乱」、右下の破線より右（x &lt; 1, y &gt; 1）が「定理で爆発」の領域。
           </figcaption>
         </figure>
         <figure>
           <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="同じ点をスケール不変な量 x, y の平面に置いた図">
-            <path d={forbiddenPath} fill="var(--pd-forbidden)" />
             <rect x={qx(X.lo)} y={qy(1)} width={qx(1) - qx(X.lo)} height={qy(0) - qy(1)} fill="var(--pd-region)" />
+            <path d={forbiddenPath} fill="var(--pd-forbidden)" />
             {[0, 1, 2].map((x) => (
               <line key={`gx${x}`} className="pd-gridline" x1={qx(x)} y1={M.t} x2={qx(x)} y2={H - M.b} />
             ))}
@@ -341,9 +341,9 @@ export default function PhaseDiagram() {
             <text x={12} y={(M.t + H - M.b) / 2} textAnchor="middle" transform={`rotate(-90 12 ${(M.t + H - M.b) / 2})`}>
               y = ‖u₀‖‖∇u₀‖ / (‖Q‖‖∇Q‖)
             </text>
-            <text x={qx(-1.9)} y={qy(0.12)}>定理で散乱</text>
-            <text x={qx(-1.9)} y={qy(2.35)}>定理で爆発</text>
-            <text x={qx(1.6)} y={qy(0.4)}>到達できない</text>
+            <text x={qx(0.25)} y={qy(0.1)}>定理で散乱</text>
+            <text x={qx(-0.6)} y={qy(2.35)}>定理で爆発</text>
+            <text x={qx(-1.9)} y={qy(0.5)}>到達できない</text>
           </svg>
           <figcaption>
             (x, y) 平面。灰色は Gagliardo–Nirenberg の不等式から到達できない領域 x &lt; 3y² − 2y³。±γ の点は同じ位置に重なる。範囲の外の {outside} 点は描いていない。

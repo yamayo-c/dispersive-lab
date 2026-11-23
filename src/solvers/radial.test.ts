@@ -65,7 +65,7 @@ describe("3 次元球対称 NLS の split-step Fourier 法（v = r u の奇関�
     const R = 32;
     const n = 4096;
     const { w } = groundState3D(R, n);
-    const errors = [0.01, 0.005, 0.0025].map((h) => {
+    const errors = [2e-3, 1e-3, 5e-4, 2.5e-4, 1.25e-4].map((h) => {
       const s = new RadialCubicNLS3D(R, n, 1);
       s.setState({ re: w, im: new Float64Array(n) });
       s.step(h, Math.round(1 / h));
@@ -86,7 +86,8 @@ describe("3 次元球対称 NLS の split-step Fourier 法（v = r u の奇関�
       expect(o).toBeGreaterThan(1.9);
       expect(o).toBeLessThan(2.1);
     }
-    expect(errors[0]!).toBeLessThan(1e-3);
+    // 最も細かい刻みで厳密解と一致する（Q は芯が鋭く |Q|² ≈ 19 なので、Δt = 1e-3 では誤差は 1e-2 程度ある）
+    expect(errors[errors.length - 1]!).toBeLessThan(1e-3);
   });
 
   it("[保存量] 質量は丸め誤差の範囲で、エネルギーは O(Δt²) の範囲で保存され、奇関数のまま保たれる", () => {
