@@ -28,13 +28,19 @@ $$
 i u_t + \Delta u + |u|^2 u = 0, \qquad x \in \mathbb{R}^3
 $$
 
-の解は、分散で広がって線形の解のようにふるまう（**散乱**する）か、ある点に集まって有限時間で $\|\nabla u(t)\|_{L^2} \to \infty$ となる（**爆発**する）か、その間のどちらかになります。このページでは球対称な初期値
+の解には、分散で広がって線形の解のようにふるまう（**散乱**する）ものと、ある点に集まって有限時間で $\|\nabla u(t)\|_{L^2} \to \infty$ となる（**爆発**する）ものがあります。ただし、どの解もこのどちらかになるわけではありません。基底状態 $Q$ の質量とエネルギーで測った量 $x$（下で定義）で分けると、次のようになります。
+
+- $x < 1$ の球対称な初期値では、解は必ず散乱か爆発のどちらか一方になります（Holmer–Roudenko 2008）。
+- $x = 1$ では、これに $e^{it}Q$ 自身と、片方の時間の向きで $e^{it}Q$ に近づく特別な解が加わります（Duyckaerts–Roudenko 2010）。
+- $x > 1$ では、散乱も爆発もしない解や、時間の向きによって結末が違う解もあり、全体像は分かっていません（下の「$x \ge 1$ で分かっていること」）。
+
+このページでは球対称な初期値
 
 $$
 u_0(r) = p\, e^{-r^2/2}\, e^{i\gamma r^2}, \qquad r = |x|
 $$
 
-の振幅 $p$ と位相の曲がり $\gamma$ を振って、どちらになるかを数値的に調べ、地図にしました（地図の点を選ぶと、その点の時間変化が出ます）。
+の振幅 $p$ と位相の曲がり $\gamma$ を振って、解が散乱するか爆発するかを数値的に調べ、地図にしました（地図の点を選ぶと、その点の時間変化が出ます）。$x \ge 1$ の点ではどちらかになるとは限りませんが、この地図では、すべての点が有限の時間で散乱か爆発のどちらかと判定されました（下の「時間刻みと判定」）。
 
 <PhaseDiagram client:only="react" />
 
@@ -79,7 +85,7 @@ $$
 - $y < 1$ なら解は大域的に存在して散乱し、
 - $y > 1$ なら有限時間で爆発する
 
-ことを示しました（爆発の側は、有限分散または球対称の初期値についての結果）。$x \ge 1$ の初期値については、この定理は何も言いません。
+ことを示しました（爆発の側は、有限分散または球対称の初期値についての結果）。$x \ge 1$ の初期値については、この定理は何も言いません（分かっていることは下の「$x \ge 1$ で分かっていること」）。
 
 鋭い Gagliardo–Nirenberg の不等式 $\|u\|_4^4 \le C\,\|u\|_2\,\|\nabla u\|_2^3$（等号は $Q$ で成り立つので $C = 4/(3^{3/2} M[Q])$）を $E$ に使うと、どの初期値も
 
@@ -88,6 +94,34 @@ x \ \ge\ 3y^2 - 2y^3
 $$
 
 を満たします。右の図の灰色の部分（$x < 3y^2 - 2y^3$）には、どんな初期値も入りません。この曲線は $(x,y) = (1,1)$（$Q$ 自身の位置）で直線 $x = 1$ に接するので、$x < 1$ の領域は $y < 1$ と $y > 1$ の 2 つに分かれます。
+
+### x ≥ 1 で分かっていること
+
+**しきい値 $x = 1$。** Duyckaerts–Roudenko（2010）は $x = 1$ の解を分類しました。$e^{it}Q$ のほかに、$t \to +\infty$ で $e^{it}Q$ に指数的に近づく球対称な解 $Q^+$ と $Q^-$ があります。$Q^-$（$y < 1$）は負の時間の向きにも大域的に存在して散乱し、$Q^+$（$y > 1$）は負の時間の向きには有限の時間しか存在しません。そして $x = 1$ の解は、方程式の対称性を除いて
+
+- $y < 1$ なら、散乱するか $Q^-$、
+- $y = 1$ なら、$e^{it}Q$、
+- $y > 1$ なら（初期値が球対称か有限分散のとき）、存在する時間の区間が有限か $Q^+$
+
+のどれかです。
+
+**散乱も爆発もしない解。** $\Delta \phi - \phi + \phi^3 = 0$ には、$Q$ のほかにも球対称な実数値の解が無限個あります（Berestycki–Lions 1983 II）。$Q$ と同じく、$e^{it}\phi$ は $|e^{it}\phi| = |\phi|$ が時間によらないので、散乱も爆発もしない大域解です。Pohozaev の恒等式は $H^1$ のどの解にも成り立つので（Berestycki–Lions 1983 I）、$Q$ のときと同じ計算で $\|\nabla \phi\|_2^2 = 3M[\phi]$、$E[\phi] = \tfrac12 M[\phi]$ となり、
+
+$$
+x = \left(\frac{M[\phi]}{M[Q]}\right)^2 = y^2
+$$
+
+です。これを上の $x \ge 3y^2 - 2y^3$ に入れると $y \ge 1$ が出ます。$y = 1$ なら $(x, y) = (1, 1)$ なので、上の分類から $e^{it}\phi$ は対称性を除いて $e^{it}Q$ に一致し、$\phi = \pm Q$ です。したがって $\pm Q$ 以外の $\phi$ は $x > 1,\ y > 1$ にあり、この領域には散乱も爆発もしない解があります。
+
+**時間の向きで結末が違う解。** Duyckaerts–Roudenko（2015）は、$x > 1$ の解の大域的な振る舞いはほとんど分かっていないとしたうえで、有限分散の初期値について十分条件を与えました。$V(t) = \int |x|^2 |u|^2\,dx$ として
+
+$$
+x \left(1 - \frac{V'(0)^2}{32\, E[u_0]\, V(0)}\right) \le 1
+$$
+
+のとき、$\|u_0\|_2 \|u_0\|_4^2 > \|Q\|_2 \|Q\|_4^2$ かつ $V'(0) \le 0$ なら正の時間の向きに有限時間で爆発し、$\|u_0\|_2 \|u_0\|_4^2 < \|Q\|_2 \|Q\|_4^2$ かつ $V'(0) \ge 0$ なら正の時間の向きに散乱します。$V'(0)^2$ が大きければ、$x$ が 1 を大きく超えていても使える条件です。その系として、初期値 $e^{i\gamma r^2} Q$ の解は、$\gamma > 0$ なら正の時間の向きに散乱して負の時間の向きに爆発し、$\gamma < 0$ ならその逆になります。$\gamma \ne 0$ では $E[e^{i\gamma r^2}Q] = E[Q] + 2\gamma^2 \int |x|^2 Q^2\,dx > E[Q]$ なので、この初期値は $x > 1$ にあります。
+
+方程式は $u(x, t) \mapsto \overline{u(x, -t)}$ で変わらず、この変換で初期値の $\gamma$ は $-\gamma$ になります。つまり $-\gamma$ の点の正の時間の向きは、$+\gamma$ の点の負の時間の向きです。下の「地図から読めること」の「(x, y) だけでは決まらない」で $\pm\gamma$ の結末が違った 165 組は、正の時間の向きに散乱し、負の時間の向きに爆発する初期値（$+\gamma$ 側）の数値的な例になっています。
 
 ### Gauss 型の初期値の x と y
 
@@ -146,3 +180,8 @@ $$
 
 - J. Holmer, S. Roudenko, A sharp condition for scattering of the radial 3D cubic nonlinear Schrödinger equation, Comm. Math. Phys. **282** (2008) 435–467, doi:[10.1007/s00220-008-0529-y](https://doi.org/10.1007/s00220-008-0529-y), arXiv:[math/0703235](https://arxiv.org/abs/math/0703235).（$x < 1$ での散乱と爆発の判定）
 - J. Holmer, R. Platte, S. Roudenko, Blow-up criteria for the 3D cubic nonlinear Schrödinger equation, Nonlinearity **23** (2010) 977–1030, doi:[10.1088/0951-7715/23/4/011](https://doi.org/10.1088/0951-7715/23/4/011), arXiv:[0911.3955](https://arxiv.org/abs/0911.3955).（§6 の Gauss 型の初期値の数値実験。Table 6.1・6.5 の閾値とこのページの値を比べた）
+- T. Duyckaerts, S. Roudenko, Threshold solutions for the focusing 3D cubic Schrödinger equation, Rev. Mat. Iberoam. **26** (2010) 1–56, doi:[10.4171/rmi/592](https://doi.org/10.4171/rmi/592), arXiv:[0806.1752](https://arxiv.org/abs/0806.1752).（$x = 1$ の解の分類。Theorem 2・3）
+- T. Duyckaerts, S. Roudenko, Going beyond the threshold: scattering and blow-up in the focusing NLS equation, Comm. Math. Phys. **334** (2015) 1573–1615, doi:[10.1007/s00220-014-2202-y](https://doi.org/10.1007/s00220-014-2202-y), arXiv:[1409.4821](https://arxiv.org/abs/1409.4821).（$x > 1$ での散乱と爆発の十分条件と、初期値 $e^{i\gamma r^2}Q$ の結末。Theorem 1.4・Corollary 1.12）
+- H. Berestycki, P.-L. Lions, Nonlinear scalar field equations, I. Existence of a ground state, Arch. Rational Mech. Anal. **82** (1983) 313–345, doi:[10.1007/BF00250555](https://doi.org/10.1007/BF00250555).（Pohozaev の恒等式。Proposition 1）
+- H. Berestycki, P.-L. Lions, Nonlinear scalar field equations, II. Existence of infinitely many solutions, Arch. Rational Mech. Anal. **82** (1983) 347–375, doi:[10.1007/BF00250556](https://doi.org/10.1007/BF00250556).（球対称な解が無限個あること）
+- L. Jeanjean, S.-S. Lu, Nonlinear scalar field equations with general nonlinearity, Nonlinear Anal. **190** (2020) 111604, doi:[10.1016/j.na.2019.111604](https://doi.org/10.1016/j.na.2019.111604), arXiv:[1807.07350](https://arxiv.org/abs/1807.07350).（Theorem 1.2 に、球対称な解が無限個あることの別証明。立方の非線形項 $f(u) = -u + u^3$ は 3 次元でその仮定 (f1)–(f4) を満たす）
