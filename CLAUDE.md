@@ -9,16 +9,17 @@
 - ホスティングは Firebase Hosting。main へのマージで本番に、PR ではプレビューチャンネルにデプロイする。
 - AI を数学的な主張の出どころにしない。ページに載る主張は、solver の計算と検証テスト、または出典に基づくものだけ。
 - AI は計算の入口と周辺（読者の問いを実験の設定に変えるなど）に使う。結果を言うのは solver。
-- AI の費用は月 $10 以内に、API の設定（1 日の回数上限）で固定する。根拠と設定は [docs/deploy.md](docs/deploy.md)。
+- AI の費用は月 $10 以内に、1 日の回数上限で固定する（読者の実験は App Check の交換の上限、数式の照合は作成専用の印）。根拠と設定は [docs/deploy.md](docs/deploy.md)。
 - ライセンス: コードは MIT（`LICENSE`）、解説の本文（`index.mdx`）は CC BY 4.0（`LICENSE-CONTENT`）。他者の図や文章を転載しない（引用は出典を明記する範囲にとどめる）。
 - README.md は公開リポジトリの読者向け。運用の手順（Notion・エージェント・公開後レビュー）は CLAUDE.md と docs に書き、README には書かない。
 
 ## 公開後レビュー
 
 - CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージして公開する。ユーザーのレビューは公開 **後** に行い、問題があれば取り下げる。
-  - main はブランチ保護で `check` と `vocabulary` の成功を必須にしている（レビュー必須・最新の main の取り込み必須は付けない。管理者は対象外）。リポジトリは auto-merge を許可し、マージ後にブランチを自動で消す。
+  - main はブランチ保護で `check`・`vocabulary`・`formula-review` の成功を必須にしている（レビュー必須・最新の main の取り込み必須は付けない。管理者は対象外）。リポジトリは auto-merge を許可し、マージ後にブランチを自動で消す。
   - PR を出したら `gh pr merge <番号> --auto --merge` で自動マージを設定する。
 - 例外: 分類の語彙（`src/lib/taxonomy.ts`。frontmatter の `equations`・`tags` に書ける語）を変える PR は、編集担当（エージェント）のレビューを通してからマージする。必須チェック `vocabulary`（`.github/workflows/vocabulary.yml`）が、ラベル `vocabulary-approved` が付くまで失敗する。基準と手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「分類の語彙」。
+- 例外: 現象ページを変える PR は、必須チェック `formula-review`（`.github/workflows/formula-review.yml`）が Gemini に解説と実装を照合させ、明白な不一致があれば失敗する。誤検知は編集担当がラベル `formula-review-approved` を付けて通す。手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「数式の照合」。
 - 査読の状態（ユーザーが数学的に確かめたか）は Notion の題材データベースのステータス（公開（未査読）／公開済み）だけで管理し、サイトには出さない。frontmatter にも項目を持たないので、「公開済み」になってもサイト側の PR は要らない。
 - arXiv などの preprint も題材にする。preprint に基づくページは frontmatter の `preprint: { arxiv, version }` で「査読前の preprint に基づく」旨と arXiv へのリンクを出す。
 - 取り下げはページのフォルダごと削除する PR。書き方と手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「公開後レビュー」。
