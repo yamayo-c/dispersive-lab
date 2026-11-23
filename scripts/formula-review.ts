@@ -162,7 +162,11 @@ async function vertex(method: "countTokens" | "generateContent", body: object): 
       // 1 日の入力トークンのクォータ（docs/deploy.md）に達したときは待っても通らない
       if (/per[ _]?day/i.test(text) || attempt >= 3) throw new QuotaError(text.slice(0, 500));
     } else if (res.status < 500 || attempt >= 3) {
-      throw new Error(`${method}: ${res.status} ${text.slice(0, 500)}`);
+      let detail = text;
+      try {
+        detail = JSON.parse(text).error.message;
+      } catch {}
+      throw new Error(`${method}: ${res.status} ${detail.split(" Remediate access")[0]!.slice(0, 300)}`);
     }
     await new Promise((r) => setTimeout(r, 20_000 * attempt));
   }
