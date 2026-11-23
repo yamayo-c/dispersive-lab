@@ -1,0 +1,76 @@
+name: 語彙のレビュー
+
+# src/lib/taxonomy.ts（equations・tags の語彙）を変える PR は、編集担当のレビューが済むまで
+# ジョブ vocabulary を失敗させて自動マージを止める（main のブランチ保護で必須チェックにしている）。
+# レビューの結果はラベルで表す:
+#   needs-vocabulary-review  … レビュー待ち（このワークフローが付ける）
+#   vocabulary-approved      … 承認（編集担当が付ける）。付いていればジョブは成功する
+#   vocabulary-rejected      … 差し戻し（編集担当が理由をコメントして付ける）
+# 承認・差し戻しのあとに taxonomy.ts がさらに変わったら、両方のラベルを外してレビューをやり直す。
+# 手順は docs/adding-a-phenomenon.md の「分類の語彙」。
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: vocabulary-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  vocabulary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: 語彙の変更とレビューの状態を確かめる
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          ACTION: ${{ github.event.action }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+          FILE=src/lib/taxonomy.ts
+          has_label() { gh pr view "$PR" --json labels --jq '.labels[].name' | grep -qx "$1"; }
+          remove_label() { if has_label "$1"; then gh pr edit "$PR" --remove-label "$1"; fi; }
+
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- "$FILE"; then
+            echo "$FILE は変わっていない。レビューは不要。"
+            remove_label needs-vocabulary-review
+            exit 0
+          fi
+
+          echo "この PR は $FILE を変えている:"
+          git diff "$BASE_SHA...$HEAD_SHA" -- "$FILE"
+
+          # 新しい push で語彙がさらに変わったら、前のレビュー結果は無効にする
+          if [ "$ACTION" = synchronize ]; then
+            if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null || ! git diff --quiet "$BEFORE" "$AFTER" -- "$FILE"; then
+              remove_label vocabulary-approved
+              remove_label vocabulary-rejected
+            fi
+          fi
+
+          if has_label vocabulary-approved; then
+            echo "編集担当が承認済み（vocabulary-approved）。"
+            remove_label needs-vocabulary-review
+            exit 0
+          fi
+
+          has_label needs-vocabulary-review || gh pr edit "$PR" --add-label needs-vocabulary-review
+          if has_label vocabulary-rejected; then
+            echo "::error::語彙の追加は差し戻された（vocabulary-rejected）。PR のコメントを読み、既存の語彙に直すか語彙の変更を見直して push する。"
+          else
+            echo "::error::語彙の変更は編集担当のレビュー待ち（needs-vocabulary-review）。承認（vocabulary-approved）されるまでマージしない。"
+          fi
+          exit 1

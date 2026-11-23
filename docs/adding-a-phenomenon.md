@@ -35,14 +35,15 @@ src/content/phenomena/<slug>/
 
 ## 3. index.mdx
 
-frontmatter（スキーマは `src/content.config.ts`）:
+frontmatter（スキーマは `src/lib/frontmatter.ts`）:
 
 ```yaml
 title: ページの題名
 summary: 一覧に出す 1〜2 文の説明
 equation: i\,\partial_t u + \partial_x^2 u = 0   # KaTeX の display 数式。$$ は付けない
 order: 20               # 一覧での並び順（小さい順）
-tags: [線形 Schrödinger, 分散]
+equations: [linear-schrodinger]   # 扱う方程式。1 つ以上。src/lib/taxonomy.ts の EQUATIONS のキー
+tags: [dispersion, exact-solution]  # 現象・概念。src/lib/taxonomy.ts の TAGS のキー（下の「分類の語彙」）
 preprint:               # 任意。査読前の preprint に基づくページだけ書く
   arxiv: "2401.01234"   # arXiv の番号（版の v は付けない。旧形式 math/0601001 も可）。文字列として引用符で囲む
   version: 2            # 基にした版
@@ -57,6 +58,27 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 2. **計算の方法** — 使った数値解法と、その誤差の性質。周期境界などの設定が現象の見え方に影響するならそれも書く。
 
 ページの上部（題名・preprint の注記・方程式・シミュレーション）と下部（検証欄）はレイアウト（`src/layouts/PhenomenonLayout.astro`）が出すので、本文には書かない。
+
+### 分類の語彙（equations・tags）
+
+`equations` と `tags` には、`src/lib/taxonomy.ts` にある語のキーだけを書ける（それ以外はスキーマが弾く）。一覧での絞り込みや方程式ごとのまとめに使うので、表記ゆれを作らないために語彙を固定している。
+
+- まず既存の語から選ぶ。各語の `description` に、どんなページに付けるかが書いてある。方程式の名前はタグにしない（`equations` に書く）。
+- 既存の語で言い表せないときだけ、同じ PR で `src/lib/taxonomy.ts` に語を足してよい。足す基準:
+  - 既存の語の同義語・言い換え・細分ではない。
+  - タグは、今あるページと Notion の題材（提案・採用）を合わせて 2 件以上に付く。
+  - 方程式は Notion の題材データベースの「方程式」の選択肢と揃える（無ければ編集担当が Notion にも足す）。
+  - キーは英小文字・数字・ハイフン、`label` はサイトに出す名前、`description` は付け分けの基準。
+- PR の本文に「足した語・既存の語では足りない理由・付く予定のページや題材」を書く。
+
+**語彙を変えた PR は自動マージされない。** ワークフロー `語彙のレビュー`（`.github/workflows/vocabulary.yml`）の必須チェック `vocabulary` が、編集担当のレビューを待つ。
+
+1. PR に `needs-vocabulary-review` のラベルが自動で付き、`vocabulary` が失敗する（ほかのチェックが通っていても、マージは保留になる）。
+2. 編集担当（ローカル・毎日 21:00）が上の基準でレビューする。
+   - 承認: `vocabulary-approved` を付ける。`vocabulary` が通り、自動マージされる。
+   - 差し戻し: 理由と代わりに使える既存の語を PR にコメントし、`vocabulary-rejected` を付ける。PR を出した側は、既存の語に直して `taxonomy.ts` の変更を外す（`vocabulary` が通る）か、語彙の変更を見直して push する（レビューのやり直しになる）。
+3. 承認・差し戻しのあとに `taxonomy.ts` がさらに変わると、ラベルは外れてレビューをやり直す。
+4. PR を出した側は、`vocabulary-approved` と `vocabulary-rejected` を自分で付けない。
 
 ## 4. verify.test.ts（必須）
 
@@ -75,7 +97,7 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 - 閾値は実測値に余裕を持たせて決め、実測値は `console.info` で出す（`npx vitest run --reporter=verbose` で見える）。`index.mdx` の `verification` にも実測値を書く。
 - `index.mdx` の `verification` に書いた `kind` ごとに、対応する付箋のテストを置く（`tests/conventions.test.ts` が確かめる）。
 
-`tests/conventions.test.ts` は次も確かめる: 3 ファイルがそろっている、slug の形式、frontmatter がスキーマ（`src/lib/frontmatter.ts`。preprint を含む）に合う、`sim.ts` の既定値で `setup` でき `tEnd` が `dt` の整数倍で n が 2 のべき。
+`tests/conventions.test.ts` は次も確かめる: 3 ファイルがそろっている、slug の形式、frontmatter がスキーマ（`src/lib/frontmatter.ts`。preprint、equations・tags の語彙を含む）に合う、`sim.ts` の既定値で `setup` でき `tEnd` が `dt` の整数倍で n が 2 のべき。
 
 ## 5. 新しい方程式・solver が要るとき
 
@@ -98,7 +120,7 @@ PR の本文には、検証テストの実測値（誤差、収束の次数、�
 
 ## 7. 公開後レビュー
 
-CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージされ、本番に公開される。ユーザー（著者）のレビューは公開の **あと** に行う。
+CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージされ、本番に公開される。ただし分類の語彙（`src/lib/taxonomy.ts`）を変えた PR は、編集担当のレビュー（必須チェック `vocabulary`）を待つ（「分類の語彙」）。ユーザー（著者）のレビューは公開の **あと** に行う。
 
 ### 査読の状態
 

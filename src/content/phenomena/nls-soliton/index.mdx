@@ -3,10 +3,8 @@ title: NLS の 1 ソリトンとガリレイ変換
 summary: focusing 非線形 Schrödinger 方程式では、分散と非線形の効果がつり合った sech 型の波（ソリトン）が形を変えずに進む。ガリレイ変換で速度を与えると、包絡線は動き、位相には搬送波 exp(ivx/2) が乗る。
 equation: i\,\partial_t u + \partial_x^2 u + 2|u|^2 u = 0, \qquad x \in \mathbb{R}/32\pi\mathbb{Z}
 order: 20
-tags:
-  - NLS
-  - ソリトン
-  - 厳密解
+equations: [nls]
+tags: [soliton, exact-solution]
 verification:
   - kind: exact
     description: 既定のパラメータ（a = 1.5, v = 1）で、t = 40 の数値解と厳密解の相対 L² 誤差（複素数のまま比較）が 3e-3 未満（実測 1.30e-3）。パラメータの範囲の四隅では 1.5e-2 未満（実測 1.14e-4〜7.28e-3。|v| = 2 では周期境界をまたぐ）。

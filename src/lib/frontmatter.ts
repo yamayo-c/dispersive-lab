@@ -1,4 +1,5 @@
 import { z } from "astro/zod";
+import { EQUATION_IDS, TAG_IDS } from "./taxonomy";
 
 /**
  * 現象ページ（src/content/phenomena/<slug>/index.mdx）の frontmatter のスキーマ。
@@ -17,7 +18,16 @@ export const phenomenonSchema = z.object({
   equation: z.string(),
   /** 一覧での並び順（小さい順） */
   order: z.number().int(),
-  tags: z.array(z.string()).default([]),
+  /** 扱う方程式（src/lib/taxonomy.ts の EQUATIONS のキー）。1 つ以上、重複なし */
+  equations: z
+    .array(z.enum(EQUATION_IDS))
+    .min(1)
+    .refine((a) => new Set(a).size === a.length, "equations に同じものを 2 回書かない"),
+  /** 現象・概念のタグ（src/lib/taxonomy.ts の TAGS のキー）。重複なし */
+  tags: z
+    .array(z.enum(TAG_IDS))
+    .default([])
+    .refine((a) => new Set(a).size === a.length, "tags に同じものを 2 回書かない"),
   /** 査読前の preprint に基づくページなら、その arXiv の番号と版 */
   preprint: z
     .object({
