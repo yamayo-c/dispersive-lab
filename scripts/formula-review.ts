@@ -4,9 +4,10 @@
  * 費用の上限は docs/deploy.md。プロンプトは ai/formula-review.prompt。
  *
  *   node scripts/formula-review.ts targets <base> <head>   PR で変わったページの slug を空白区切りで出す
- *   node scripts/formula-review.ts pr                       （CI）照合して PR にコメントする。環境変数は下の main()
+ *   node scripts/formula-review.ts pr                       （CI）照合して PR にコメントする。環境変数は runPr()
  *   node scripts/formula-review.ts check <slug>...          手元で照合し、結果の JSON とトークン数を出す
- *                                                          （VERTEX_TOKEN に gcloud auth print-access-token の値）
+ *                                                          （VERTEX_TOKEN に gcloud auth print-access-token の値。
+ *                                                          CI と同じく、その日の 1 回を使う）
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -22,13 +23,13 @@ const CORE = ["src/solvers/schrodinger.ts", "src/lib/simulation.ts", "src/lib/ex
 
 const PROJECT = "dispersive-lab";
 const MODEL = "gemini-4-carbon";
-/**
- * 1 回の入力の下限と上限（トークン）。上限を超えるページは照合せずに失敗させる。
- * 1 日の入力トークンのクォータ（21,000。docs/deploy.md）が下限の 2 倍より小さいので、AI を呼べるのは 1 日 1 回まで。
- * 下限は、プロンプトと CORE のファイルだけで 11,253 トークン（2026-11-23 に実測）あることから決めた。
- */
-const MIN_INPUT_TOKENS = 11_000;
+/** 1 回の入力の上限（トークン）。超えるページは照合せずに失敗させる */
 const MAX_INPUT_TOKENS = 21_000;
+/**
+ * 1 日 1 回の印。AI を呼ぶ前に gs://<BUCKET>/formula-review/<日本時間の日付> を作成専用で作り、作れなければ呼ばない。
+ * CI のサービスアカウントはこの接頭辞に作ることしかできない（消す・上書きは不可）。Gemini 4 には 1 日のクォータが効かないため（docs/deploy.md）
+ */
+const BUCKET = "dispersive-lab-precomputed";
 /** 1 回の出力の上限（思考を含むトークン）。試験の最大は 6,732 */
 const MAX_OUTPUT_TOKENS = 9_000;
 const THINKING_LEVEL = "MEDIUM";
@@ -158,10 +159,7 @@ async function vertex(method: "countTokens" | "generateContent", body: object): 
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
     const text = await res.text();
     if (res.ok) return JSON.parse(text);
-    if (res.status === 429) {
-      // 1 日の入力トークンのクォータ（docs/deploy.md）に達したときは待っても通らない
-      if (/per[ _]?day/i.test(text) || attempt >= 3) throw new QuotaError(text.slice(0, 500));
-    } else if (res.status < 500 || attempt >= 3) {
+    if ((res.status !== 429 && res.status < 500) || attempt >= 3) {
       let detail = text;
       try {
         detail = JSON.parse(text).error.message;
@@ -170,6 +168,21 @@ async function vertex(method: "countTokens" | "generateContent", body: object): 
     }
     await new Promise((r) => setTimeout(r, 20_000 * attempt));
   }
+}
+
+/** その日（日本時間）の印を作る。もうあれば QuotaError */
+async function takeDailySlot(slug: string): Promise<void> {
+  const day = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
+  const name = encodeURIComponent(`formula-review/${day}`);
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${BUCKET}/o?uploadType=media&name=${name}&ifGenerationMatch=0`;
+  const body = JSON.stringify({ pr: process.env.PR ?? "local", head: process.env.HEAD_SHA ?? "", slug });
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.VERTEX_TOKEN}`, "Content-Type": "application/json" },
+    body,
+  });
+  if (res.status === 412) throw new QuotaError(`gs://${BUCKET}/formula-review/${day} がある`);
+  if (!res.ok) throw new Error(`1 日 1 回の印を作れない: ${res.status} ${(await res.text()).slice(0, 300)}`);
 }
 
 function request(b: string) {
@@ -216,9 +229,7 @@ type Outcome =
 async function reviewSlug(slug: string, b: string): Promise<Outcome> {
   const tokens = await countTokens(b);
   if (tokens > MAX_INPUT_TOKENS) return { slug, kind: "too-large", tokens };
-  if (tokens < MIN_INPUT_TOKENS) {
-    throw new Error(`入力が ${tokens} トークンで下限 ${MIN_INPUT_TOKENS} を下回った。1 日の呼び出しの上限の前提が崩れたので、docs/deploy.md の計算をやり直す`);
-  }
+  await takeDailySlot(slug);
   const { review: r, usage } = await review(b);
   console.log(`${slug}: ${r.verdict}、指摘 ${r.findings.length} 件、入力 ${usage.input}・出力 ${usage.output} トークン、$${cost(usage).toFixed(4)}`);
   return { slug, kind: "reviewed", review: r, usage };
@@ -332,7 +343,7 @@ async function runPr(): Promise<number> {
   } catch (e) {
     const quota = e instanceof QuotaError;
     const msg = quota
-      ? "今日の照合の上限（入力トークンの 1 日のクォータ）に達した。翌日（アメリカ太平洋時間の 0 時以降）にこのワークフローを再実行する。"
+      ? "今日（日本時間）の照合は使い切った（1 日 1 回）。翌日以降に、失敗したこのチェックを再実行する（`gh run rerun <run-id> --failed`）。push し直す必要はない。"
       : `照合できなかった: ${(e as Error).message}。このワークフローを再実行するか、編集担当が確かめて \`${LABEL}\` を付ける。`;
     console.log(`::error::${msg}`);
     // hash を残すので、編集担当が確かめて LABEL を付ければ通る。付かなければ次の実行で照合し直す

@@ -9,7 +9,7 @@
 - ホスティングは Firebase Hosting。main へのマージで本番に、PR ではプレビューチャンネルにデプロイする。
 - AI を数学的な主張の出どころにしない。ページに載る主張は、solver の計算と検証テスト、または出典に基づくものだけ。
 - AI は計算の入口と周辺（読者の問いを実験の設定に変えるなど）に使う。結果を言うのは solver。
-- AI の費用は月 $10 以内に、API の設定（1 日の回数上限）で固定する。根拠と設定は [docs/deploy.md](docs/deploy.md)。
+- AI の費用は月 $10 以内に、1 日の回数上限で固定する（読者の実験は App Check の交換の上限、数式の照合は作成専用の印）。根拠と設定は [docs/deploy.md](docs/deploy.md)。
 - ライセンス: コードは MIT（`LICENSE`）、解説の本文（`index.mdx`）は CC BY 4.0（`LICENSE-CONTENT`）。他者の図や文章を転載しない（引用は出典を明記する範囲にとどめる）。
 - README.md は公開リポジトリの読者向け。運用の手順（Notion・エージェント・公開後レビュー）は CLAUDE.md と docs に書き、README には書かない。
 
