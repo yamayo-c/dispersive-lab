@@ -1,6 +1,6 @@
 # 現象ページの追加手順
 
-1 つの現象 = 1 ページ = 1 フォルダ。`src/content/phenomena/<slug>/` に 3 つのファイルを置けば、一覧とページが自動で生成される（登録の手作業は要らない）。
+1 つの現象 = 1 ページ = 1 フォルダ。`src/content/phenomena/<slug>/` に 3 つのファイルを置けば、一覧とページが自動で生成される（登録の手作業は要らない）。事前計算の結果だけを見せるページは、`sim.ts` の代わりに `precompute.ts` を置く（6）。
 
 ```
 src/content/phenomena/<slug>/
@@ -97,7 +97,7 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 - 閾値は実測値に余裕を持たせて決め、実測値は `console.info` で出す（`npx vitest run --reporter=verbose` で見える）。`index.mdx` の `verification` にも実測値を書く。
 - `index.mdx` の `verification` に書いた `kind` ごとに、対応する付箋のテストを置く（`tests/conventions.test.ts` が確かめる）。
 
-`tests/conventions.test.ts` は次も確かめる: 3 ファイルがそろっている、slug の形式、frontmatter がスキーマ（`src/lib/frontmatter.ts`。preprint、equations・tags の語彙を含む）に合う、`sim.ts` の既定値で `setup` でき `tEnd` が `dt` の整数倍で n が 2 のべき。
+`tests/conventions.test.ts` は次も確かめる: 3 ファイルがそろっている（`sim.ts` は `precompute.ts` で代えてよい）、slug の形式、frontmatter がスキーマ（`src/lib/frontmatter.ts`。preprint、equations・tags の語彙を含む）に合う、`sim.ts` があればその既定値で `setup` でき `tEnd` が `dt` の整数倍で n が 2 のべき。
 
 ## 5. 新しい方程式・solver が要るとき
 
@@ -113,6 +113,7 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 
 - `definePrecompute({ tasks, run })` を default export する（型は `src/lib/precompute.ts`）。`run` で solver を動かし、`write(name, data)` で結果を書く。`tasks` を 2 以上にすると、タスクに分けて並列に動く（`taskIndex` で分担を決める）。1 タスクは 2 vCPU・4 GiB・6 時間まで。
 - 書いた結果はサイトの `/precomputed/<slug>/<name>` に置かれる。表示の部品が足りなければ、そのページに要るものを足す。
+- 事前計算の結果だけを見せるページでは `sim.ts` を省ける（ブラウザでのシミュレーションは出ない）。
 - `run` の中で検証（保存量のずれ・厳密解との誤差など）を測り、閾値を超えたら例外を投げる。例外が出ると CI が失敗し、公開されない。`verify.test.ts` には同じ計算を小さくした設定で検証を書く（4 の決まりは同じ）。
 - 手元では `npm run precompute -- run <slug>` で `public/precomputed/<slug>/` に書き出してから確かめる。
 - CI（`ci.yml`・`preview.yml`・`deploy.yml`）は `npm run precompute -- sync` で、計算に関わるファイル（ページのフォルダ・`src/solvers`・`src/lib`・依存関係）が変わったときだけ Cloud Run Jobs で計算し直し、結果を取ってくる。資格情報は [deploy.md](deploy.md)。
