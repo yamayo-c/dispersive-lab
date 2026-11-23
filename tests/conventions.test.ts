@@ -3,7 +3,7 @@
  *
  * - src/content/phenomena/<slug>/ に index.mdx・sim.ts・verify.test.ts がそろっている
  * - slug は英小文字・数字・ハイフンだけ
- * - index.mdx の frontmatter がスキーマ（src/lib/frontmatter.ts。reviewed・preprint を含む）に合う
+ * - index.mdx の frontmatter がスキーマ（src/lib/frontmatter.ts。preprint を含む）に合う
  * - sim.ts の default export が SimDefinition として使え、既定値で setup できる
  * - verify.test.ts に [保存量]・[収束]・[厳密解] のどれかの付いたテストがある
  * - index.mdx の verification に書いた種類ごとに、対応する付箋のテストがある
@@ -36,15 +36,6 @@ describe("frontmatter のスキーマ", () => {
     order: 1,
     verification: [{ kind: "exact", description: "d" }],
   };
-
-  it("reviewed を省くと false（未査読）になる", () => {
-    expect(phenomenonSchema.parse(base).reviewed).toBe(false);
-    expect(phenomenonSchema.parse({ ...base, reviewed: true }).reviewed).toBe(true);
-  });
-
-  it("reviewed は boolean だけ", () => {
-    expect(phenomenonSchema.safeParse({ ...base, reviewed: "true" }).success).toBe(false);
-  });
 
   it("preprint は arXiv の番号と版。省いてよい", () => {
     expect(phenomenonSchema.parse(base).preprint).toBeUndefined();
@@ -88,7 +79,7 @@ describe("現象ページのフォルダ規約", () => {
         }
       });
 
-      it("index.mdx の frontmatter がスキーマに合う（reviewed・preprint を含む）", () => {
+      it("index.mdx の frontmatter がスキーマに合う（preprint を含む）", () => {
         const result = phenomenonSchema.safeParse(readFrontmatter(dir));
         expect(result.success, result.error?.message).toBe(true);
       });
