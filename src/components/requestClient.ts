@@ -37,11 +37,16 @@ export class RequestError extends Error {
   }
 }
 
-function classify(e: unknown): RequestFailure {
-  const text = `${e instanceof Error ? `${e.name} ${e.message}` : String(e)} ${JSON.stringify((e as { customData?: unknown })?.customData ?? "")}`;
-  // App Check のトークン交換が 1 日の上限に達すると、交換が 429 で断られ、要求は App Check で弾かれる
-  if (/throttled|exchange.*429|429.*exchange|per ?day|PerDay|app ?check/i.test(text)) return "closed";
-  if (/429|RESOURCE_EXHAUSTED|quota/i.test(text)) return "busy";
+/**
+ * 失敗の理由を分ける。
+ * - App Check のトークン交換が 429 で断られた: 1 日の上限（利用者ごとの交換の上限は AI Logic 側より緩くしてあるので、
+ *   1 分あたりの上限ではまず AI Logic 側が 429 を返す）。SDK は「appCheck/initial-throttle」「appCheck/throttled」で返す
+ * - それ以外の 429: 1 分あたりの上限
+ */
+export function classify(e: unknown): RequestFailure {
+  const text = e instanceof Error ? `${e.name} ${e.message}` : String(e);
+  if (/appCheck\//.test(text) && /\b429\b/.test(text)) return "closed";
+  if (/\b429\b|RESOURCE_EXHAUSTED|quota/i.test(text)) return "busy";
   return "failed";
 }
 

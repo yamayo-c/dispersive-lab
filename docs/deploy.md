@@ -116,10 +116,11 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 | --- | --- | --- |
 | `firebaseappcheck.googleapis.com` の `V1ExchangeRequestsPerDayPerProject`・`v1beta-ExchangeRequestsPerDayPerProject` | 100 / 日 | トークンは使い捨てなので、AI Logic への要求は 1 日 100 回まで。超えると交換が断られ、入力欄に「今日の受付は終わりました」と出る |
 | `recaptchaenterprise.googleapis.com` の `CreateAssessmentRequestsPerDayPerProject` | 100 / 日 | reCAPTCHA の評価は月 3,100 件まで（無料枠は月 10,000 件） |
-| `aiplatform.googleapis.com` の `GlobalGenerateContentInputTokensPerDayPerBaseModel`（`gemini-3.1-flash-lite`） | 400,000 / 日 | 入力トークンの念のための上限（1 日 100 回 × 3,700） |
-| `firebaseappcheck.googleapis.com` の `V1EndUserExchangeRequestsPerMinutePerProjectPerUser`・`v1beta-EndUserExchangeRequestsPerMinutePerProjectPerUser` | 5 / 分 | 利用者ごとの回数制限 |
-| `firebasevertexai.googleapis.com` の `GenerateContentRequestsPerMinutePerProjectPerUser`（全リージョン） | 5 / 分 | 利用者ごとの回数制限（AI Logic 側） |
+| `firebaseappcheck.googleapis.com` の `V1EndUserExchangeRequestsPerMinutePerProjectPerUser`・`v1beta-EndUserExchangeRequestsPerMinutePerProjectPerUser` | 10 / 分 | 利用者ごとの交換の上限。AI Logic 側（5 / 分）より緩くして、交換の 429 を 1 日の上限の合図として使えるようにしている |
+| `firebasevertexai.googleapis.com` の `GenerateContentRequestsPerMinutePerProjectPerUser` | 5 / 分 | 利用者ごとの回数制限（実測で効く。超えると「混み合っています」） |
 | `firebasevertexai.googleapis.com` の `TemplateExecuteRequestsPerMinutePerProject` | 10 / 分（既定値のまま） | プロジェクト全体の 1 分あたりの上限 |
+
+Agent Platform 側のクォータ（`aiplatform.googleapis.com` の `GlobalGenerateContentInputTokensPerDayPerBaseModel`）は、AI Logic 経由の要求には効かなかった（2026-11-23、1,000 トークン / 日にしても通った）。400,000 / 日にしてあるが、上限としては数えない。
 
 1 日の区切りはアメリカ太平洋時間の 0 時（Google Cloud のクォータの区切り）。上限を変えるときは、上の表の最悪の 1 回の費用から計算し直す。予算アラート（月 1,000 円）は別に残してある。
 
