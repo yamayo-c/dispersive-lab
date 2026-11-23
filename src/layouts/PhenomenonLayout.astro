@@ -39,7 +39,7 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
     <p class="lead">{summary}</p>
     <div set:html={equationHtml} />
 
-    {hasSim && <Simulation slug={entry.id} equation={equation} summary={summary} client:only="react" />}
+    {hasSim && <Simulation slug={entry.id} client:only="react" />}
 
     <slot />
 

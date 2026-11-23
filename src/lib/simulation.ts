@@ -6,20 +6,12 @@ import { SchrodingerSplitStep, type SchrodingerEquation } from "../solvers/schro
  *
  * - params: ページで操作できるパラメータ。値は URL のクエリ（?key=value）に保存される。
  * - setup:  パラメータから、格子・方程式・時間刻み・初期値などを作る。
- * - request: 読者が文章で実験を頼む欄の例文と候補ボタンの文。
  *           ブラウザ（Web Worker）と検証テスト（Node）の両方がこの関数を呼ぶので、
  *           ページで動く計算とテストで検証する計算は同じものになる。
  */
 export interface SimDefinition {
   params: readonly ParamSpec[];
   setup(params: ParamValues): SimSetup;
-  /** 読者が文章で実験を頼む欄の、入力欄の例文と候補ボタンの文 */
-  request: RequestExamples;
-}
-
-export interface RequestExamples {
-  placeholder: string;
-  suggestions: readonly [string, string, string];
 }
 
 export interface ParamSpec {

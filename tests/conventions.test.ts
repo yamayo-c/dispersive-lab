@@ -4,7 +4,7 @@
  * - src/content/phenomena/<slug>/ に index.mdx・verify.test.ts と、sim.ts・precompute.ts の少なくとも一方がある
  * - slug は英小文字・数字・ハイフンだけ
  * - index.mdx の frontmatter がスキーマ（src/lib/frontmatter.ts。preprint、equations・tags の語彙を含む）に合う
- * - sim.ts があれば、その default export が SimDefinition として使え、既定値で setup でき、文章で実験を頼む欄の例文と候補ボタンの文（3 つ）がある
+ * - sim.ts があれば、その default export が SimDefinition として使え、既定値で setup できる
  * - verify.test.ts に [保存量]・[収束]・[厳密解] のどれかの付いたテストがある
  * - index.mdx の verification に書いた種類ごとに、対応する付箋のテストがある
  */
@@ -105,7 +105,7 @@ describe("現象ページのフォルダ規約", () => {
         expect(result.success, result.error?.message).toBe(true);
       });
 
-      it.runIf(hasSim)("sim.ts の既定値で setup でき、tEnd が dt の整数倍で、格子点数が 2 のべきで、例文と候補ボタンの文がある", async () => {
+      it.runIf(hasSim)("sim.ts の既定値で setup でき、tEnd が dt の整数倍で、格子点数が 2 のべき", async () => {
         const mod = (await import(`../src/content/phenomena/${slug}/sim.ts`)) as { default: SimDefinition };
         const def = mod.default;
         for (const p of def.params) {
@@ -116,9 +116,6 @@ describe("現象ページのフォルダ規約", () => {
         expect(() => totalSteps(setup)).not.toThrow();
         expect(Math.log2(setup.grid.n) % 1).toBe(0);
         expect(setup.stepsPerFrame).toBeGreaterThanOrEqual(1);
-        expect(def.request.placeholder.trim(), "入力欄の例文").not.toBe("");
-        expect(def.request.suggestions, "候補ボタンの文は 3 つ").toHaveLength(3);
-        for (const s of def.request.suggestions) expect([...s.trim()].length, s).toBeGreaterThan(0);
       });
 
       it("verify.test.ts に数値検証の付箋（[保存量]・[収束]・[厳密解]）付きのテストがあり、index.mdx の verification と対応している", () => {
