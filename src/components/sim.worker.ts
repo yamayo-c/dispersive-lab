@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import { mass, relativeDrift, schrodingerEnergy } from "../lib/conserved";
 import { relativeL2Error } from "../lib/norms";
+import { experimentSetup, runExperiment } from "../lib/experiment";
 import { createSolver, sampleExact, totalSteps, type SimSetup } from "../lib/simulation";
 import { FFT } from "../solvers/fft";
 import { gridPoints } from "../solvers/grid";
@@ -67,8 +68,8 @@ self.onmessage = async (ev: MessageEvent<WorkerRequest>) => {
   const req = ev.data;
   try {
     if (req.type === "init") {
-      const def = await loadSim(req.slug);
-      const setup = def.setup(req.params);
+      const src = req.source;
+      const setup = "experiment" in src ? experimentSetup(src.experiment) : (await loadSim(src.slug)).setup(src.params);
       const solver = createSolver(setup);
       const fft = new FFT(setup.grid.n);
       const u0 = solver.snapshot();
@@ -98,6 +99,10 @@ self.onmessage = async (ev: MessageEvent<WorkerRequest>) => {
       state.solver.step(steps);
       state.stepsDone += steps;
       post({ type: "frame", requestId: req.requestId, frame: makeFrame(state) });
+    } else if (req.type === "measure") {
+      const fine = runExperiment(req.experiment);
+      const coarse = runExperiment(req.experiment, req.experiment.n / 2);
+      self.postMessage({ type: "measured", requestId: req.requestId, fine, coarse } satisfies WorkerResponse);
     }
   } catch (e) {
     post({ type: "error", requestId: req.requestId, message: e instanceof Error ? e.message : String(e) });

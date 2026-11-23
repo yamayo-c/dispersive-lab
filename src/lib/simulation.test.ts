@@ -4,6 +4,7 @@ import { clampParam, defineSim, paramsFromQuery, paramsToQuery, totalSteps, type
 
 const spec: ParamSpec = { key: "a", label: "a", min: -1, max: 2, step: 0.1, default: 0.5 };
 const def = defineSim({
+  request: { placeholder: "p", suggestions: ["a", "b", "c"] },
   params: [spec, { key: "n", label: "n", min: 1, max: 10, step: 1, default: 3 }],
   setup: () => ({
     kind: "schrodinger",

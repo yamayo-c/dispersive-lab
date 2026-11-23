@@ -37,6 +37,10 @@ export function periodicSoliton(s: Soliton, x: number, t: number): [number, numb
 }
 
 export default defineSim({
+  request: {
+    placeholder: "例: 振幅 2 と 1 のソリトンを正面からぶつける",
+    suggestions: ["ソリトンを 2 つ衝突させる", "振幅を 2 倍にした sech から始める", "defocusing にすると？"],
+  },
   params: [
     {
       key: "a",

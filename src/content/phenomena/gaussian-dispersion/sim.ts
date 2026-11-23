@@ -17,6 +17,10 @@ export function packet(width: number, wavenumber: number): GaussianPacket {
 }
 
 export default defineSim({
+  request: {
+    placeholder: "例: 幅 0.5 の波束を 2 つ、逆向きに走らせる",
+    suggestions: ["幅を半分にすると広がり方は？", "非線形項を足すとどうなる？", "2 つの波束を重ねる"],
+  },
   params: [
     {
       key: "s",
