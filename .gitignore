@@ -8,3 +8,6 @@ firebase-debug.log
 !.env.example
 coverage/
 .DS_Store
+
+# Claude Code の手元だけの補足（Notion の ID など）
+CLAUDE.local.md
