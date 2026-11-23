@@ -1,0 +1,105 @@
+---
+title: 散乱と爆発の相図（3 次元立方 NLS）
+summary: 3 次元の focusing 立方非線形 Schrödinger 方程式で、Gauss 型の初期値の振幅と位相の曲がりを振り、解が散乱するか有限時間で爆発するかを地図にした。基底状態 Q の質量とエネルギーで決まる Holmer–Roudenko の境界が、地図の上で線として見える。
+equation: i\,\partial_t u + \Delta u + |u|^2 u = 0, \qquad x \in \mathbb{R}^3,\quad u = u(|x|, t)
+order: 30
+equations: [nls]
+tags: [blowup]
+verification:
+  - kind: exact
+    description: PLACEHOLDER
+---
+
+import PhaseDiagram from "../../../components/PhaseDiagram";
+
+## 何が起きているか
+
+3 次元の focusing 立方非線形 Schrödinger 方程式（NLS）
+
+$$
+i u_t + \Delta u + |u|^2 u = 0, \qquad x \in \mathbb{R}^3
+$$
+
+の解は、分散で広がって線形の解のようにふるまう（**散乱**する）か、ある点に集まって有限時間で $\|\nabla u(t)\|_{L^2} \to \infty$ となる（**爆発**する）か、その間のどちらかになります。このページでは球対称な初期値
+
+$$
+u_0(r) = p\, e^{-r^2/2}\, e^{i\gamma r^2}, \qquad r = |x|
+$$
+
+の振幅 $p$ と位相の曲がり $\gamma$ を振って、どちらになるかを数値的に調べ、地図にしました（地図の点を選ぶと、その点の時間変化が出ます）。
+
+<PhaseDiagram client:only="react" />
+
+### 保存量とスケーリング
+
+この方程式は質量とエネルギー
+
+$$
+M[u] = \int |u|^2\,dx, \qquad
+E[u] = \frac12 \int |\nabla u|^2\,dx - \frac14 \int |u|^4\,dx
+$$
+
+を保存します。$u$ が解なら $u_\lambda(x,t) = \lambda\, u(\lambda x, \lambda^2 t)$ も解で、$M[u_\lambda] = \lambda^{-1} M[u]$、$E[u_\lambda] = \lambda E[u]$、$\|\nabla u_\lambda\|_2^2 = \lambda \|\nabla u\|_2^2$ となります。したがって積 $M[u]E[u]$ と $\|u\|_2 \|\nabla u\|_2$ はスケーリングで変わらない量です。
+
+### 基底状態 Q
+
+$u = Q(x)\,e^{it}$ の形の解（定在波）は、$\Delta Q - Q + Q^3 = 0$ の解 $Q$ から作れます。その正値・球対称・減衰する解を **基底状態** と呼びます。$e^{it}Q$ は散乱も爆発もしない解です。$Q$ を数値的に求めると（下の「計算の方法」）
+
+$$
+Q(0) \approx 4.33739, \qquad M[Q] = \|Q\|_2^2 \approx 18.8973
+$$
+
+でした。方程式に $Q$ と $x \cdot \nabla Q$ を掛けて積分すると（Pohozaev の恒等式）、$\|\nabla Q\|_2^2 + M[Q] = \|Q\|_4^4$ と $\tfrac12 \|\nabla Q\|_2^2 + \tfrac32 M[Q] = \tfrac34 \|Q\|_4^4$ が出て、これを解くと
+
+$$
+\|\nabla Q\|_2^2 = 3M[Q], \qquad \|Q\|_4^4 = 4M[Q], \qquad E[Q] = \tfrac12 M[Q]
+$$
+
+となります（数値解でも $10^{-9}$ 以内で成り立ちます）。
+
+### Holmer–Roudenko の定理
+
+スケール不変な 2 つの量を $Q$ の値で割って
+
+$$
+x = \frac{M[u_0]\,E[u_0]}{M[Q]\,E[Q]}, \qquad
+y = \frac{\|u_0\|_2\, \|\nabla u_0\|_2}{\|Q\|_2\, \|\nabla Q\|_2}
+$$
+
+とおきます。Holmer–Roudenko（2008）は、球対称な $u_0 \in H^1$ で $x < 1$ のとき
+
+- $y < 1$ なら解は大域的に存在して散乱し、
+- $y > 1$ なら有限時間で爆発する
+
+ことを示しました（爆発の側は Glassey の virial の議論による、有限分散または球対称の場合）。$x \ge 1$ の初期値については、この定理は何も言いません。
+
+鋭い Gagliardo–Nirenberg の不等式 $\|u\|_4^4 \le C\,\|u\|_2\,\|\nabla u\|_2^3$（等号は $Q$ で成り立つので $C = 4/(3^{3/2} M[Q])$）を $E$ に使うと、どの初期値も
+
+$$
+x \ \ge\ 3y^2 - 2y^3
+$$
+
+を満たします。右の図の灰色の部分（$x < 3y^2 - 2y^3$）には、どんな初期値も入りません。この曲線は $(x,y) = (1,1)$（$Q$ 自身の位置）で直線 $x = 1$ に接するので、$x < 1$ の領域は $y < 1$ と $y > 1$ の 2 つに分かれます。
+
+### Gauss 型の初期値の x と y
+
+$u_0 = p\,e^{-r^2/2} e^{i\gamma r^2}$ では、積分を計算して
+
+$$
+M = \pi^{3/2} p^2, \qquad
+\|\nabla u_0\|_2^2 = \tfrac32 \pi^{3/2} p^2 (1 + 4\gamma^2), \qquad
+\|u_0\|_4^4 = \left(\tfrac{\pi}{2}\right)^{3/2} p^4
+$$
+
+となります。$x, y$ は $\gamma^2$ にしか依らないので、$\pm\gamma$ の 2 点は $(x, y)$ 平面の同じ位置に重なります。一方、$V(t) = \int |x|^2 |u|^2\,dx$ の時間微分は $V'(0) = 4\,\mathrm{Im}\int \bar u_0\, x\cdot\nabla u_0\,dx = 8\gamma \int r^2 |u_0|^2\,dx$ なので、$\gamma < 0$ は解が中心に集まる向き、$\gamma > 0$ は広がる向きです。
+
+RESULTS
+
+## 計算の方法
+
+RESULTS-METHOD
+
+## 参考文献
+
+- J. Holmer, S. Roudenko, A sharp condition for scattering of the radial 3D cubic nonlinear Schrödinger equation, Comm. Math. Phys. **282** (2008) 435–467, doi:[10.1007/s00220-008-0529-y](https://doi.org/10.1007/s00220-008-0529-y), arXiv:[math/0703235](https://arxiv.org/abs/math/0703235).（$x < 1$ での散乱と爆発の判定）
+- J. Holmer, R. Platte, S. Roudenko, Blow-up criteria for the 3D cubic nonlinear Schrödinger equation, Nonlinearity **23** (2010) 977–1030, doi:[10.1088/0951-7715/23/4/011](https://doi.org/10.1088/0951-7715/23/4/011), arXiv:[0911.3955](https://arxiv.org/abs/0911.3955).（§6 の Gauss 型の初期値の数値実験。Table 6.1・6.5 の閾値とこのページの値を比べた）
