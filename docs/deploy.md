@@ -124,7 +124,9 @@ Agent Platform 側のクォータ（`aiplatform.googleapis.com` の `GlobalGener
 
 1 日の区切りはアメリカ太平洋時間の 0 時（Google Cloud のクォータの区切り）。上限を変えるときは、上の表の最悪の 1 回の費用から計算し直す。予算アラート（月 1,000 円）は別に残してある。
 
-ブラウザ用の API キー（`Browser key (auto created by Firebase)`）は、使える API を `firebaseappcheck.googleapis.com`・`firebasevertexai.googleapis.com` に、リファラーを本番・プレビューチャンネル・localhost に制限している。
+ブラウザ用の API キー（`Browser key (auto created by Firebase)`）は、使える API を `firebaseappcheck.googleapis.com`・`firebasevertexai.googleapis.com` に、リファラーを本番（`dispersive-lab.web.app`・`dispersive-lab.firebaseapp.com`）と localhost の 4321・4322 番に制限している。
+
+プレビューチャンネルでこの機能を試すときは、そのチャンネルのドメイン（`dispersive-lab--pr<番号>-….web.app`）を reCAPTCHA のキーの `--domains` と API キーの `--allowed-referrers` に一時的に足し、マージしたら外す（どちらもホスト名の途中にワイルドカードを書けない）。足さないと、プレビューでは送信が「送れませんでした」になる（ほかの機能はそのまま動く）。
 
 ### テンプレートを変える
 
