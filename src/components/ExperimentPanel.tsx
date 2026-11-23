@@ -81,10 +81,6 @@ function fmt(v: number): string {
   return Number(v.toPrecision(4)).toString();
 }
 
-function sci(v: number): string {
-  return !Number.isFinite(v) ? "—" : v === 0 ? "0" : v.toExponential(1);
-}
-
 /** max|u| の推移の小さな折れ線 */
 function Sparkline({ times, values }: { times: number[]; values: number[] }) {
   const w = 120;
@@ -139,12 +135,6 @@ function Results({ experiment, measured, error }: { experiment: Experiment; meas
             </div>
           </>
         )}
-        <div>
-          <dt>保存量のずれ</dt>
-          <dd>
-            質量 {sci(fine.massDrift)}、エネルギー {sci(fine.energyDrift)}
-          </dd>
-        </div>
       </dl>
       {!v.agrees && <p className="exp-warn">解像度が足りない可能性があります。N を上げて確かめてください。</p>}
       {v.driftLarge && <p className="exp-warn">保存量のずれが大きく、時間刻みが粗い可能性があります。</p>}
