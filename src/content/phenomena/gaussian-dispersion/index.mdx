@@ -3,10 +3,8 @@ title: Gauss 波束の分散
 summary: 線形 Schrödinger 方程式では、波数の違う成分が違う速さで進むので、Gauss 型の波束は形を保ったまま広がっていく。広がり方は厳密に計算できる。
 equation: i\,\partial_t u + \partial_x^2 u = 0, \qquad x \in \mathbb{R}/80\mathbb{Z}
 order: 10
-tags:
-  - 線形 Schrödinger
-  - 分散
-  - 厳密解
+equations: [linear-schrodinger]
+tags: [dispersion, exact-solution]
 verification:
   - kind: exact
     description: 既定のパラメータとパラメータ範囲の四隅で、t = 4 の数値解と（周期化した）厳密解の相対 L² 誤差が 1e-10 未満（実測は 1e-13 程度）。

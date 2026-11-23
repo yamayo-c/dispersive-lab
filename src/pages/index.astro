@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { EQUATIONS, TAGS } from "../lib/taxonomy";
 
 const entries = (await getCollection("phenomena")).sort((a, b) => a.data.order - b.data.order);
 ---
@@ -26,13 +27,14 @@ const entries = (await getCollection("phenomena")).sort((a, b) => a.data.order -
               )}
             </h2>
             <p>{e.data.summary}</p>
-            {e.data.tags.length > 0 && (
-              <ul class="tags">
-                {e.data.tags.map((t) => (
-                  <li>{t}</li>
-                ))}
-              </ul>
-            )}
+            <ul class="tags">
+              {e.data.equations.map((q) => (
+                <li class="equation">{EQUATIONS[q].label}</li>
+              ))}
+              {e.data.tags.map((t) => (
+                <li>{TAGS[t].label}</li>
+              ))}
+            </ul>
           </a>
         </li>
       ))

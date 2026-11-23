@@ -12,8 +12,9 @@
 ## 公開後レビュー
 
 - CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージして公開する。ユーザーのレビューは公開 **後** に行い、問題があれば取り下げる。
-  - main はブランチ保護で `check` の成功を必須にしている（レビュー必須・最新の main の取り込み必須は付けない。管理者は対象外）。リポジトリは auto-merge を許可し、マージ後にブランチを自動で消す。
+  - main はブランチ保護で `check` と `vocabulary` の成功を必須にしている（レビュー必須・最新の main の取り込み必須は付けない。管理者は対象外）。リポジトリは auto-merge を許可し、マージ後にブランチを自動で消す。
   - PR を出したら `gh pr merge <番号> --auto --merge` で自動マージを設定する。
+- 例外: 分類の語彙（`src/lib/taxonomy.ts`。frontmatter の `equations`・`tags` に書ける語）を変える PR は、編集担当（エージェント）のレビューを通してからマージする。必須チェック `vocabulary`（`.github/workflows/vocabulary.yml`）が、ラベル `vocabulary-approved` が付くまで失敗する。基準と手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「分類の語彙」。
 - 査読の状態（ユーザーが数学的に確かめたか）は Notion の題材データベースのステータス（公開（未査読）／公開済み）だけで管理し、サイトには出さない。frontmatter にも項目を持たないので、「公開済み」になってもサイト側の PR は要らない。
 - arXiv などの preprint も題材にする。preprint に基づくページは frontmatter の `preprint: { arxiv, version }` で「査読前の preprint に基づく」旨と arXiv へのリンクを出す。
 - 取り下げはページのフォルダごと削除する PR。書き方と手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「公開後レビュー」。
@@ -31,7 +32,7 @@
 ## 構成
 
 - `src/solvers/` — FFT と方程式ごとの時間発展（今は周期境界 1 次元の Strang 分割 split-step Fourier: `i u_t + α u_xx + κ|u|²u = 0`）。
-- `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）。
+- `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）。
 - `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
 - `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。

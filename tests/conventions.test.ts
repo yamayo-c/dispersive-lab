@@ -3,7 +3,7 @@
  *
  * - src/content/phenomena/<slug>/ に index.mdx・sim.ts・verify.test.ts がそろっている
  * - slug は英小文字・数字・ハイフンだけ
- * - index.mdx の frontmatter がスキーマ（src/lib/frontmatter.ts。preprint を含む）に合う
+ * - index.mdx の frontmatter がスキーマ（src/lib/frontmatter.ts。preprint、equations・tags の語彙を含む）に合う
  * - sim.ts の default export が SimDefinition として使え、既定値で setup できる
  * - verify.test.ts に [保存量]・[収束]・[厳密解] のどれかの付いたテストがある
  * - index.mdx の verification に書いた種類ごとに、対応する付箋のテストがある
@@ -34,8 +34,26 @@ describe("frontmatter のスキーマ", () => {
     summary: "s",
     equation: "e",
     order: 1,
+    equations: ["nls"],
     verification: [{ kind: "exact", description: "d" }],
   };
+
+  it("equations と tags は src/lib/taxonomy.ts の語彙だけ", () => {
+    expect(phenomenonSchema.parse(base).tags).toEqual([]);
+    expect(phenomenonSchema.safeParse({ ...base, tags: ["soliton", "exact-solution"] }).success).toBe(true);
+    for (const bad of [
+      { equations: [] }, // 1 つ以上
+      { equations: undefined },
+      { equations: ["NLS"] }, // label ではなくキーを書く
+      { equations: ["nls", "nls"] },
+      { tags: ["ソリトン"] },
+      { tags: ["unknown-tag"] },
+      { tags: ["soliton", "soliton"] },
+      { tags: ["nls"] }, // 方程式はタグにしない
+    ]) {
+      expect(phenomenonSchema.safeParse({ ...base, ...bad }).success, JSON.stringify(bad)).toBe(false);
+    }
+  });
 
   it("preprint は arXiv の番号と版。省いてよい", () => {
     expect(phenomenonSchema.parse(base).preprint).toBeUndefined();
