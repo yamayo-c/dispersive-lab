@@ -107,7 +107,17 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 2. `src/solvers/<name>.test.ts` に、solver そのものの検証（厳密解との一致と、時間刻みを半分にしたときの誤差の比から求めた収束の次数）を書く。
 3. `src/lib/simulation.ts` の `SimSetup` に設定の型を union で足し、`createSolver` と `src/components/sim.worker.ts` を対応させる。保存量は `src/lib/conserved.ts` に足す。
 
-## 6. 確かめてから PR を出す
+## 6. ブラウザで間に合わない計算
+
+2 次元以上・長時間・パラメータを振った地図など、ブラウザで間に合わない計算は、ページのフォルダに `precompute.ts` を置いて事前に計算する。
+
+- `definePrecompute({ tasks, run })` を default export する（型は `src/lib/precompute.ts`）。`run` で solver を動かし、`write(name, data)` で結果を書く。`tasks` を 2 以上にすると、タスクに分けて並列に動く（`taskIndex` で分担を決める）。1 タスクは 2 vCPU・4 GiB・6 時間まで。
+- 書いた結果はサイトの `/precomputed/<slug>/<name>` に置かれる。表示の部品が足りなければ、そのページに要るものを足す。
+- `run` の中で検証（保存量のずれ・厳密解との誤差など）を測り、閾値を超えたら例外を投げる。例外が出ると CI が失敗し、公開されない。`verify.test.ts` には同じ計算を小さくした設定で検証を書く（4 の決まりは同じ）。
+- 手元では `npm run precompute -- run <slug>` で `public/precomputed/<slug>/` に書き出してから確かめる。
+- CI（`ci.yml`・`preview.yml`・`deploy.yml`）は `npm run precompute -- sync` で、計算に関わるファイル（ページのフォルダ・`src/solvers`・`src/lib`・依存関係）が変わったときだけ Cloud Run Jobs で計算し直し、結果を取ってくる。資格情報は [deploy.md](deploy.md)。
+
+## 7. 確かめてから PR を出す
 
 ```sh
 npm test          # 数値検証を含む全テスト
@@ -118,7 +128,7 @@ npm run preview   # dist/ を http://localhost:4321 で表示して、ページ�
 
 PR の本文には、検証テストの実測値（誤差、収束の次数、保存量のずれ）を書く。preprint に基づくページなら、arXiv の番号と版も書く。
 
-## 7. 公開後レビュー
+## 8. 公開後レビュー
 
 CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージされ、本番に公開される。ただし分類の語彙（`src/lib/taxonomy.ts`）を変えた PR は、編集担当のレビュー（必須チェック `vocabulary`）を待つ（「分類の語彙」）。ユーザー（著者）のレビューは公開の **あと** に行う。
 
