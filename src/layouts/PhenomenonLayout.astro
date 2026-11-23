@@ -10,7 +10,7 @@ interface Props {
 }
 
 const { entry } = Astro.props;
-const { title, summary, equation, verification, reviewed, preprint } = entry.data;
+const { title, summary, equation, verification, preprint } = entry.data;
 const equationHtml = katex.renderToString(equation, { displayMode: true, throwOnError: true });
 
 const KIND_LABEL = {
@@ -28,21 +28,11 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
   <article>
     <h1>{title}</h1>
     {
-      (!reviewed || preprint) && (
-        <div class="notices">
-          {!reviewed && (
-            <p class="notice unreviewed">
-              <span class="badge unreviewed">未査読</span>
-              このページは自動で生成し、数値検証（下の「この計算の検証」）が通った時点で公開しています。著者による数学的な内容の確認はまだです。
-            </p>
-          )}
-          {preprint && (
-            <p class="notice preprint">
-              <span class="badge preprint">preprint</span>
-              査読前の preprint（<a href={arxivUrl(preprint)}>arXiv:{preprint.arxiv}v{preprint.version}</a>）に基づくページです。今後の版で結果が変わったり、取り下げられたりすることがあります。
-            </p>
-          )}
-        </div>
+      preprint && (
+        <p class="notice">
+          <span class="badge">preprint</span>
+          査読前の preprint（<a href={arxivUrl(preprint)}>arXiv:{preprint.arxiv}v{preprint.version}</a>）に基づくページです。今後の版で結果が変わったり、取り下げられたりすることがあります。
+        </p>
       )
     }
     <p class="lead">{summary}</p>

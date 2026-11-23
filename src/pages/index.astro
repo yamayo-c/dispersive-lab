@@ -19,13 +19,8 @@ const entries = (await getCollection("phenomena")).sort((a, b) => a.data.order -
           <a class="phenomenon-card" href={`/phenomena/${e.id}/`}>
             <h2>
               {e.data.title}
-              {!e.data.reviewed && (
-                <span class="badge unreviewed" title="自動で生成・検証して公開。著者による数学的な確認はまだ">
-                  未査読
-                </span>
-              )}
               {e.data.preprint && (
-                <span class="badge preprint" title={`査読前の preprint（arXiv:${e.data.preprint.arxiv}v${e.data.preprint.version}）に基づく`}>
+                <span class="badge" title={`査読前の preprint（arXiv:${e.data.preprint.arxiv}v${e.data.preprint.version}）に基づく`}>
                   preprint
                 </span>
               )}

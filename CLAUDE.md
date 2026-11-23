@@ -14,7 +14,7 @@
 - CI（ジョブ `check`: 型チェック・数値検証を含むテスト・ビルド）が通った PR は自動でマージして公開する。ユーザーのレビューは公開 **後** に行い、問題があれば取り下げる。
   - main はブランチ保護で `check` の成功を必須にしている（レビュー必須・最新の main の取り込み必須は付けない。管理者は対象外）。リポジトリは auto-merge を許可し、マージ後にブランチを自動で消す。
   - PR を出したら `gh pr merge <番号> --auto --merge` で自動マージを設定する。
-- ユーザーが数学的に確かめるまでのページは `index.mdx` の `reviewed: false` で「未査読」の印を出す。新しいページは必ず false。`true` にするのはユーザーが Notion で「公開済み」にしたページだけで、その変更だけの PR にする。
+- 査読の状態（ユーザーが数学的に確かめたか）は Notion の題材データベースのステータス（公開（未査読）／公開済み）だけで管理し、サイトには出さない。frontmatter にも項目を持たないので、「公開済み」になってもサイト側の PR は要らない。
 - arXiv などの preprint も題材にする。preprint に基づくページは frontmatter の `preprint: { arxiv, version }` で「査読前の preprint に基づく」旨と arXiv へのリンクを出す。
 - 取り下げはページのフォルダごと削除する PR。書き方と手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「公開後レビュー」。
 
@@ -34,7 +34,7 @@
 - `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）。
 - `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
-- `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・「未査読」と preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。
+- `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。
 
 ## コマンド
 
@@ -56,8 +56,8 @@ firebase deploy --only hosting   # 手元から本番へデプロイ（build の
 - データベース「題材」: data source `collection://4201e857-21e0-8196-94ed-000b9899d179`
 - 実装するのはステータスが「採用」の題材だけ。手順は親ページの運用ルールに従う。
 - ステータスの流れ: 提案 → 採用 → 作業中 → レビュー待ち（PR が CI 待ち・CI 失敗）→ 公開（未査読）→ 公開済み（ユーザーが査読済み）。ほかに 取り下げ（公開をやめる）と 見送り（作らない）。
-  - 「公開（未査読）」は `reviewed: false` のページ、「公開済み」は `reviewed: true` のページに対応する。
-  - 「公開済み」「取り下げ」「見送り」はユーザーが決める。エージェントはそれに合わせて PR を出す（「公開済み」→ `reviewed: true` にする PR、「取り下げ」→ フォルダを消す PR）だけで、ステータスを自分の判断で戻さない。
+  - 「公開（未査読）」と「公開済み」の違いは Notion の中だけにあり、サイトの表示は同じ。
+  - 「公開済み」「取り下げ」「見送り」はユーザーが決める。エージェントはそれに合わせて PR を出す（「取り下げ」→ フォルダを消す PR。「公開済み」「見送り」はサイト側の変更なし）だけで、ステータスを自分の判断で戻さない。
 
 ## GitHub
 

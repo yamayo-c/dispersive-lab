@@ -18,11 +18,6 @@ export const phenomenonSchema = z.object({
   /** 一覧での並び順（小さい順） */
   order: z.number().int(),
   tags: z.array(z.string()).default([]),
-  /**
-   * 著者（ユーザー）が数学的な内容を確かめたか。false のページには「未査読」の印を出す。
-   * エージェントは true にしない（査読済みにする PR は、ユーザーが Notion で「公開済み」にしたあとに出す）。
-   */
-  reviewed: z.boolean().default(false),
   /** 査読前の preprint に基づくページなら、その arXiv の番号と版 */
   preprint: z
     .object({
