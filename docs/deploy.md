@@ -33,7 +33,7 @@ firebase hosting:channel:deploy pr-<番号> --expires 7d
 ### 使っている資格情報
 
 - サービスアカウント: `github-deploy@dispersive-lab.iam.gserviceaccount.com`
-- ロール: `roles/firebasehosting.admin`（Hosting へのデプロイとプレビューチャンネルの作成）。事前計算のために、`roles/run.developer`（ジョブの作成・実行）、ジョブ用サービスアカウントへの `roles/iam.serviceAccountUser`、バケットへの `roles/storage.objectViewer`（結果の取得）。
+- ロール: `roles/firebasehosting.admin`（Hosting へのデプロイとプレビューチャンネルの作成）。事前計算のために、`roles/run.developer`（ジョブの作成・実行）、ジョブ用サービスアカウントへの `roles/iam.serviceAccountUser`、バケットへの `roles/storage.objectViewer`（結果の取得）。数式の照合のために、カスタムロール `projects/dispersive-lab/roles/geminiCaller`（`aiplatform.endpoints.predict` だけ）。
 - GitHub のシークレット: `FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB`（上のサービスアカウントの JSON キー）。鍵ファイルは手元に残していない。
 
 ### 作ったときの手順（鍵を作り直すときも同じ）
@@ -99,6 +99,8 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 
 ### 費用の上限と根拠
 
+AI の費用は、この機能と [数式の照合](#数式の照合gemini) の最悪を足して **$1.40 + $8.18 = $9.58 / 月** に固定している（CLAUDE.md の月 $10 以内）。どちらかの上限・モデル・料金を変えるときは、両方を足して計算し直す。
+
 料金（Cloud Billing のカタログ API、2026-11-23）: `gemini-3.1-flash-lite` の global エンドポイントで、テキスト入力 $0.25 / 100 万トークン（SKU `7DDF-162F-B3F3`）、テキスト出力（思考を含む）$1.50 / 100 万トークン（SKU `DA75-5E07-40DC`）。
 
 1 回あたりのトークン数（実測）:
@@ -108,14 +110,14 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 | ふつうの問い（20 件の平均） | 約 1,700 | 約 200 | 約 $0.0007 |
 | 最悪（入力欄の上限いっぱいに、1 字あたりのトークンが多い文字を詰め、候補 3 つ・波 4 つを出させる） | 3,620 | 1,110 | $0.0026 |
 
-最悪の値に余裕を見て 1 回 $0.003（入力 3,700・出力 1,300）とすると、1 日 100 回 × 31 日 = 3,100 回で **$9.3 / 月**。ふつうの問いなら同じ回数で約 $2.2 / 月。
+最悪の値に余裕を見て 1 回 $0.003（入力 3,700・出力 1,300）とすると、1 日 15 回 × 31 日 = 465 回で **$1.40 / 月**。ふつうの問いなら同じ回数で約 $0.33 / 月。
 
 上限は次のクォータで固定している（Cloud Quotas API の QuotaPreference。値を下げる変更は承認なしで入る）。
 
 | クォータ | 値 | 効き方 |
 | --- | --- | --- |
-| `firebaseappcheck.googleapis.com` の `V1ExchangeRequestsPerDayPerProject`・`v1beta-ExchangeRequestsPerDayPerProject` | 100 / 日 | トークンは使い捨てなので、AI Logic への要求は 1 日 100 回まで。超えると交換が断られ、入力欄に「今日の受付は終わりました」と出る |
-| `recaptchaenterprise.googleapis.com` の `CreateAssessmentRequestsPerDayPerProject` | 100 / 日 | reCAPTCHA の評価は月 3,100 件まで（無料枠は月 10,000 件） |
+| `firebaseappcheck.googleapis.com` の `V1ExchangeRequestsPerDayPerProject`・`v1beta-ExchangeRequestsPerDayPerProject` | 15 / 日 | トークンは使い捨てなので、AI Logic への要求は 1 日 15 回まで。超えると交換が断られ、入力欄に「今日の受付は終わりました」と出る |
+| `recaptchaenterprise.googleapis.com` の `CreateAssessmentRequestsPerDayPerProject` | 15 / 日 | reCAPTCHA の評価は月 465 件まで（無料枠は月 10,000 件） |
 | `firebaseappcheck.googleapis.com` の `V1EndUserExchangeRequestsPerMinutePerProjectPerUser`・`v1beta-EndUserExchangeRequestsPerMinutePerProjectPerUser` | 10 / 分 | 利用者ごとの交換の上限。AI Logic 側（5 / 分）より緩くして、交換の 429 を 1 日の上限の合図として使えるようにしている |
 | `firebasevertexai.googleapis.com` の `GenerateContentRequestsPerMinutePerProjectPerUser` | 5 / 分 | 利用者ごとの回数制限（実測で効く。超えると「混み合っています」） |
 | `firebasevertexai.googleapis.com` の `TemplateExecuteRequestsPerMinutePerProject` | 10 / 分（既定値のまま） | プロジェクト全体の 1 分あたりの上限 |
@@ -163,5 +165,47 @@ curl -X PATCH "${H[@]}" "https://firebaseappcheck.googleapis.com/v1beta/projects
 curl -X PATCH "${H[@]}" "https://firebasevertexai.googleapis.com/v1beta/projects/$P/locations/global/config?updateMask=trafficFilter.templateOnly" -d '{"trafficFilter":{"templateOnly":true}}'
 # テンプレートの作成は POST .../locations/global/templates?promptTemplateId=experiment-request（本文は上の「テンプレートを変える」と同じ）
 # クォータ（例。ほかも同じ形）
-gcloud beta quotas preferences create --service=firebaseappcheck.googleapis.com --quota-id=V1ExchangeRequestsPerDayPerProject --preferred-value=100 --project=$P --preference-id=appcheck-exchange-per-day --justification="AI の費用を月 10 ドル以内に固定する"
+gcloud beta quotas preferences create --service=firebaseappcheck.googleapis.com --quota-id=V1ExchangeRequestsPerDayPerProject --preferred-value=15 --project=$P --preference-id=appcheck-v1-exchange-per-day --justification="AI の費用を月 10 ドル以内に固定する"
 ```
+
+## 数式の照合（Gemini）
+
+2026-11-23 に導入した（ユーザーの承認済み）。現象ページを変える PR で、解説と実装の明白な不一致を Gemini に探させ、見つかれば必須チェック `formula-review` を失敗させる。運用は [adding-a-phenomenon.md](adding-a-phenomenon.md) の「数式の照合」。
+
+- ワークフロー: `.github/workflows/formula-review.yml`。本体は `scripts/formula-review.ts`、プロンプトは `ai/formula-review.prompt`。
+- モデル: `gemini-4-carbon`（Gemini API on Agent Platform、`global`）。実装担当（Claude）と別系統の、呼べる中で最上位のもの。思考 `MEDIUM`、出力は structured output（判定と指摘の一覧）。
+- 資格情報: 上の `github-deploy` サービスアカウント（カスタムロール `geminiCaller` = `aiplatform.endpoints.predict` だけ）。
+- 送るもの: 変わったページのファイル（照合の対象）と、規約のファイル（`schrodinger.ts`・`simulation.ts`・`exact.ts`・`conserved.ts`）・ページが import する `src/lib`・`src/solvers` のファイル（参照）。ページごとに 1 回呼ぶ。
+
+### 費用の上限と根拠
+
+料金（Cloud Billing のカタログ API、2026-11-23）: `gemini-4-carbon` の global のオンライン予測で、テキスト入力 $4 / 100 万トークン（SKU `C47F-BE66-1A4E`）、テキスト出力 $20 / 100 万トークン（SKU `1B77-85A0-B300`。思考も出力として数える）。Flex（半額）はこのモデルでは使えない（400 が返る）。
+
+1 回あたりのトークン数（実測）:
+
+| | 入力 | 出力（思考を含む） | 費用 |
+| --- | --- | --- | --- |
+| `gaussian-dispersion` | 15,160 | 2,093 | $0.10 |
+| `nls-soliton` | 18,350 | 3,819 | $0.15 |
+| わざと誤りを入れた版（6 通り） | 15,159〜18,350 | 3,296〜6,732 | $0.13〜$0.21 |
+| 最悪（入力・出力とも上限） | 21,000 | 9,000 | $0.264 |
+
+- 1 回の出力は `maxOutputTokens` = 9,000 で切る（Agent Platform の直接の呼び出しでは思考を含めて効く。2026-11-23 に 300 で確かめた）。切れたら照合は失敗する。
+- 1 日の上限は `aiplatform.googleapis.com` の `GlobalGenerateContentInputTokensPerDayPerBaseModel`（`base_model: gemini-4-carbon`、preference `gemini-4-carbon-input-per-day`）= **21,000 トークン / 日**。1 回の入力はプロンプトと規約のファイルだけで 11,253 トークンあり、スクリプトは 11,000 未満・21,000 超では呼ばないので、AI を呼べるのは 1 日 1 回まで。上限に達すると 429 で照合は失敗し、翌日（アメリカ太平洋時間の 0 時以降）にワークフローを再実行する。
+- 最悪の費用は 1 日 1 回 × $0.264 × 31 日 = **$8.18 / 月**。ふつうは 1 回 $0.10〜0.21。
+- 同じ入力の結果は PR のコメントに残したハッシュで使い回すので、ラベルの付け外しやページ以外の push では呼ばない。`countTokens` は無料。
+
+### 作ったときの手順
+
+```sh
+export CLOUDSDK_PYTHON=$(uv python find) CLOUDSDK_BILLING_QUOTA_PROJECT=dispersive-lab
+P=dispersive-lab; GH=github-deploy@$P.iam.gserviceaccount.com
+gcloud iam roles create geminiCaller --project $P --title "Gemini の呼び出し（数式の照合）" --permissions aiplatform.endpoints.predict --stage GA
+gcloud projects add-iam-policy-binding $P --member serviceAccount:$GH --role projects/$P/roles/geminiCaller --condition=None
+gcloud beta quotas preferences create --service=aiplatform.googleapis.com --quota-id=GlobalGenerateContentInputTokensPerDayPerBaseModel \
+  --dimensions=base_model=gemini-4-carbon --preferred-value=21000 --project=$P --preference-id=gemini-4-carbon-input-per-day \
+  --justification="AI の費用を月 10 ドル以内に固定する" --allow-high-percentage-quota-decrease
+GH_TOKEN=$(gh auth token --user yamayo-c) gh label create formula-review-approved --repo yamayo-c/dispersive-lab --color 0E8A16
+```
+
+手元で照合するときは `VERTEX_TOKEN=$(gcloud auth print-access-token) QUOTA_PROJECT=$P node scripts/formula-review.ts check <slug>`（1 日のクォータを使う）。モデルを変えたら、料金と最悪の 1 回の費用、入力の下限を測り直して、この節と上の読者の上限を合わせて計算し直す。

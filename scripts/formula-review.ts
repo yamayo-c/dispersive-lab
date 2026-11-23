@@ -29,8 +29,8 @@ const MODEL = "gemini-4-carbon";
  */
 const MIN_INPUT_TOKENS = 11_000;
 const MAX_INPUT_TOKENS = 21_000;
-/** 1 回の出力の上限（思考を含むトークン） */
-const MAX_OUTPUT_TOKENS = 8_000;
+/** 1 回の出力の上限（思考を含むトークン）。試験の最大は 6,732 */
+const MAX_OUTPUT_TOKENS = 9_000;
 const THINKING_LEVEL = "MEDIUM";
 /** 料金（Cloud Billing のカタログ API、global のオンライン予測。docs/deploy.md） */
 const USD_PER_INPUT_TOKEN = 4e-6;
