@@ -122,7 +122,7 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 
 Agent Platform 側のクォータ（`aiplatform.googleapis.com` の `GlobalGenerateContentInputTokensPerDayPerBaseModel`）は、AI Logic 経由の要求には効かなかった（2026-11-23、1,000 トークン / 日にしても通った）。400,000 / 日にしてあるが、上限としては数えない。
 
-1 日の区切りはアメリカ太平洋時間の 0 時（Google Cloud のクォータの区切り）。上限を変えるときは、上の表の最悪の 1 回の費用から計算し直す。予算アラート（月 1,000 円）は別に残してある。
+1 日の交換の上限は実際に効くことを確かめた（2026-11-23、上限を 1 にして交換が `Token exchange requests per day` の 429 で断られ、入力欄が「今日の受付は終わりました」になった）。クォータの値を変えてから効くまで数分かかる。1 日の区切りはアメリカ太平洋時間の 0 時（Google Cloud のクォータの区切り）。上限を変えるときは、上の表の最悪の 1 回の費用から計算し直す。予算アラート（月 1,000 円）は別に残してある。
 
 ブラウザ用の API キー（`Browser key (auto created by Firebase)`）は、使える API を `firebaseappcheck.googleapis.com`・`firebasevertexai.googleapis.com` に、リファラーを本番（`dispersive-lab.web.app`・`dispersive-lab.firebaseapp.com`）と localhost の 4321・4322 番に制限している。
 
