@@ -27,6 +27,21 @@ export function gradientNormSquared(grid: Grid1D, u: ComplexField, fft: FFT = ne
 }
 
 /**
+ * 運動量  P[u] = Im ∫ ū u_x dx を Parseval の等式で計算する:  (L / n²) Σ_k k |û_k|²。
+ * Nyquist 波数の成分は符号が決まらないので、その成分が無視できる（解像度が足りている）ことを前提にする。
+ * i u_t + α u_xx + κ|u|²u = 0 の滑らかな解では時間によらない。
+ */
+export function momentum(grid: Grid1D, u: ComplexField, fft: FFT = new FFT(grid.n)): number {
+  const re = u.re.slice();
+  const im = u.im.slice();
+  fft.forward(re, im);
+  const k = wavenumbers(grid.n, grid.length);
+  let s = 0;
+  for (let j = 0; j < grid.n; j++) s += k[j]! * (re[j]! * re[j]! + im[j]! * im[j]!);
+  return (s * grid.length) / (grid.n * grid.n);
+}
+
+/**
  * i u_t + α u_xx + κ|u|²u = 0 のエネルギー（Hamiltonian）
  *
  *     E[u] = ∫ ( α |u_x|² − (κ/2) |u|⁴ ) dx.
