@@ -5,7 +5,7 @@
 ## 決まっている方針
 
 - Astro + React（シミュレーション部分だけ React の island）。解説は MDX + KaTeX。1つの現象 = 1ページ = 1フォルダ。
-- solver は TypeScript（Float64Array、倍精度）。ブラウザでは Web Worker で動かす。同じコードを Node で動かして CI の数値検証に使う（検証用に別言語の実装を持たない）。
+- solver は TypeScript（Float64Array、倍精度）。ブラウザでは Web Worker で動かす。同じコードを Node で動かして CI の数値検証に使う（検証用に別言語の実装を持たない）。ブラウザで間に合わない計算は、同じコードを Cloud Run Jobs で事前に計算する（[docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md) の「ブラウザで間に合わない計算」）。
 - ホスティングは Firebase Hosting。main へのマージで本番に、PR ではプレビューチャンネルにデプロイする。
 - サイトの実行時に AI を使わない。
 - ライセンス: コードは MIT（`LICENSE`）、解説の本文（`index.mdx`）は CC BY 4.0（`LICENSE-CONTENT`）。他者の図や文章を転載しない（引用は出典を明記する範囲にとどめる）。
@@ -34,7 +34,7 @@
 ## 構成
 
 - `src/solvers/` — FFT と方程式ごとの時間発展（今は周期境界 1 次元の Strang 分割 split-step Fourier: `i u_t + α u_xx + κ|u|²u = 0`）。
-- `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）。
+- `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）、事前計算の型（`precompute.ts`）。
 - `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
 - `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。

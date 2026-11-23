@@ -11,3 +11,6 @@ coverage/
 
 # Claude Code の手元だけの補足（Notion の ID など）
 CLAUDE.local.md
+
+# 事前計算の結果（npm run precompute で作り直せる）
+public/precomputed/

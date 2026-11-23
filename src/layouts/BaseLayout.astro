@@ -8,7 +8,7 @@ interface Props {
 }
 
 const SITE_NAME = "dispersive-lab";
-const { title, description = "非線形分散型方程式の数値実験をブラウザで動かして見せるサイト" } = Astro.props;
+const { title, description = "非線形分散型方程式の数値実験を見せるサイト" } = Astro.props;
 const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
 ---
 
@@ -31,7 +31,7 @@ const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
     </main>
     <footer class="site-footer">
       <div class="container">
-        計算はすべてブラウザの中で行っています（倍精度）。ソースコードと数値検証は
+        ソースコードと数値検証は
         <a href="https://github.com/yamayo-c/dispersive-lab">GitHub</a> にあります。
       </div>
     </footer>

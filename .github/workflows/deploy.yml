@@ -24,6 +24,17 @@ jobs:
       - run: npm ci
       - name: テスト（数値検証を含む）
         run: npm test
+      # precompute.ts のあるページがあるときだけ（docs/adding-a-phenomenon.md）
+      - name: Google Cloud の認証
+        if: hashFiles('src/content/phenomena/*/precompute.ts') != ''
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB }}
+      - if: hashFiles('src/content/phenomena/*/precompute.ts') != ''
+        uses: google-github-actions/setup-gcloud@v3
+      - name: 事前計算
+        if: hashFiles('src/content/phenomena/*/precompute.ts') != ''
+        run: npm run precompute -- sync
       - name: ビルド
         run: npm run build
       - name: Firebase Hosting（本番）へデプロイ

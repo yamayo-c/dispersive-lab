@@ -1,6 +1,6 @@
 # dispersive-lab
 
-非線形分散型方程式の数値実験を、ブラウザで動かして見る静的サイトです。
+非線形分散型方程式の数値実験を見せる静的サイトです。
 現象ごとに「解説・動かせるシミュレーション・数値検証」を1ページにまとめています。
 今は非線形 Schrödinger 方程式（NLS）を扱っており、KdV・NLKG・sine-Gordon などを順に加えていきます。
 
@@ -19,7 +19,7 @@
 ## 技術
 
 - Astro + MDX + KaTeX（解説）、React（シミュレーション部分）
-- solver は TypeScript（倍精度）。計算はすべてブラウザの Web Worker で行います
+- solver は TypeScript（倍精度）
 - Firebase Hosting
 
 ## 手元で動かす

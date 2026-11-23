@@ -33,7 +33,7 @@ firebase hosting:channel:deploy pr-<番号> --expires 7d
 ### 使っている資格情報
 
 - サービスアカウント: `github-deploy@dispersive-lab.iam.gserviceaccount.com`
-- ロール: `roles/firebasehosting.admin`（Firebase Hosting 管理者）だけ。Hosting へのデプロイとプレビューチャンネルの作成に足りる最小のロール。
+- ロール: `roles/firebasehosting.admin`（Hosting へのデプロイとプレビューチャンネルの作成）。事前計算のために、`roles/run.developer`（ジョブの作成・実行）、ジョブ用サービスアカウントへの `roles/iam.serviceAccountUser`、バケットへの `roles/storage.objectViewer`（結果の取得）。
 - GitHub のシークレット: `FIREBASE_SERVICE_ACCOUNT_DISPERSIVE_LAB`（上のサービスアカウントの JSON キー）。鍵ファイルは手元に残していない。
 
 ### 作ったときの手順（鍵を作り直すときも同じ）
@@ -54,3 +54,30 @@ rm -f "$KEY"
 鍵を作り直したら、古い鍵は `gcloud iam service-accounts keys list / delete` で消す。
 
 鍵ファイルを持たない方法として、Workload Identity 連携（`google-github-actions/auth`）もある。設定は増えるが、漏れて困る鍵が残らない。
+
+## 事前計算（Cloud Run Jobs）
+
+2026-11-23 に導入した（ユーザーの承認済み）。プロジェクトは Blaze プランで、請求先アカウントは Google Developer Program のクレジットが入るもの。使い方は [adding-a-phenomenon.md](adding-a-phenomenon.md) の「ブラウザで間に合わない計算」。
+
+- ジョブ: `precompute`（`asia-northeast1`）。定義は `scripts/precompute.ts` の中にあり、計算が要るときに `sync` が作り直す（イメージは `.node-version` の Node）。公開リポジトリから指定のコミットを取ってきて `run` を呼ぶ。
+- バケット: `gs://dispersive-lab-precomputed`（非公開）。`data/<slug>/<ハッシュ>/` に結果、`done/<slug>/<ハッシュ>/<タスク番号>` に完了の印。ジョブはバケットを `/out` にマウントして書く。
+- ジョブ用サービスアカウント: `precompute-job@dispersive-lab.iam.gserviceaccount.com`。ロールはバケットへの `roles/storage.objectAdmin` だけ。
+- 予算: クレジットを差し引いた費用で月 1,000 円（50%・90%・100% で請求先アカウントの管理者にメール）。
+
+作ったときの手順:
+
+```sh
+export CLOUDSDK_PYTHON=$(uv python find)
+P=dispersive-lab; B=dispersive-lab-precomputed
+JOB=precompute-job@$P.iam.gserviceaccount.com; GH=github-deploy@$P.iam.gserviceaccount.com
+gcloud services enable run.googleapis.com billingbudgets.googleapis.com cloudbilling.googleapis.com --project $P
+gcloud storage buckets create gs://$B --project $P --location asia-northeast1 --uniform-bucket-level-access --public-access-prevention
+gcloud iam service-accounts create precompute-job --project $P
+gcloud storage buckets add-iam-policy-binding gs://$B --member serviceAccount:$JOB --role roles/storage.objectAdmin
+gcloud storage buckets add-iam-policy-binding gs://$B --member serviceAccount:$GH --role roles/storage.objectViewer
+gcloud projects add-iam-policy-binding $P --member serviceAccount:$GH --role roles/run.developer --condition=None
+gcloud iam service-accounts add-iam-policy-binding $JOB --project $P --member serviceAccount:$GH --role roles/iam.serviceAccountUser
+gcloud billing budgets create --billing-project=$P --billing-account=<請求先アカウントの ID> --display-name="dispersive-lab（クレジット差し引き後）" \
+  --budget-amount=1000JPY --filter-projects=projects/$P --credit-types-treatment=include-all-credits \
+  --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0
+```
