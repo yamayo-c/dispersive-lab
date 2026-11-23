@@ -11,6 +11,7 @@ interface Props {
 
 const { entry } = Astro.props;
 const { title, summary, equation, verification, preprint } = entry.data;
+const hasSim = `../content/phenomena/${entry.id}/sim.ts` in import.meta.glob("../content/phenomena/*/sim.ts");
 const equationHtml = katex.renderToString(equation, { displayMode: true, throwOnError: true });
 
 const KIND_LABEL = {
@@ -38,7 +39,7 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
     <p class="lead">{summary}</p>
     <div set:html={equationHtml} />
 
-    <Simulation slug={entry.id} client:only="react" />
+    {hasSim && <Simulation slug={entry.id} client:only="react" />}
 
     <slot />
 
@@ -56,7 +57,7 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
       </ul>
       <p>
         上の検証は、このページと同じ solver を Node で動かすテスト（<a href={testUrl}>verify.test.ts</a>）として、変更のたびに
-        CI で実行しています。初期値とパラメータの定義は <a href={simUrl}>sim.ts</a> にあります。
+        CI で実行しています。{hasSim && <>初期値とパラメータの定義は <a href={simUrl}>sim.ts</a> にあります。</>}
       </p>
     </section>
   </article>

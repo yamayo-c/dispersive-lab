@@ -36,7 +36,7 @@
 - `src/solvers/` — FFT と方程式ごとの時間発展（今は周期境界 1 次元の Strang 分割 split-step Fourier: `i u_t + α u_xx + κ|u|²u = 0`）。
 - `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）、事前計算の型（`precompute.ts`）。
 - `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
-- `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
+- `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。事前計算だけのページは `sim.ts` の代わりに `precompute.ts`。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
 - `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。
 
 ## コマンド

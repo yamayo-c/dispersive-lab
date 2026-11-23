@@ -1,10 +1,10 @@
 /**
  * 現象ページのフォルダ規約を確かめる（docs/adding-a-phenomenon.md）。
  *
- * - src/content/phenomena/<slug>/ に index.mdx・sim.ts・verify.test.ts がそろっている
+ * - src/content/phenomena/<slug>/ に index.mdx・verify.test.ts と、sim.ts・precompute.ts の少なくとも一方がある
  * - slug は英小文字・数字・ハイフンだけ
  * - index.mdx の frontmatter がスキーマ（src/lib/frontmatter.ts。preprint、equations・tags の語彙を含む）に合う
- * - sim.ts の default export が SimDefinition として使え、既定値で setup できる
+ * - sim.ts があれば、その default export が SimDefinition として使え、既定値で setup できる
  * - verify.test.ts に [保存量]・[収束]・[厳密解] のどれかの付いたテストがある
  * - index.mdx の verification に書いた種類ごとに、対応する付箋のテストがある
  */
@@ -91,10 +91,13 @@ describe("現象ページのフォルダ規約", () => {
         expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
       });
 
-      it("index.mdx・sim.ts・verify.test.ts がそろっている", () => {
-        for (const f of ["index.mdx", "sim.ts", "verify.test.ts"]) {
+      const hasSim = existsSync(join(dir, "sim.ts"));
+
+      it("index.mdx・verify.test.ts と、sim.ts・precompute.ts の少なくとも一方がある", () => {
+        for (const f of ["index.mdx", "verify.test.ts"]) {
           expect(existsSync(join(dir, f)), `${slug}/${f}`).toBe(true);
         }
+        expect(hasSim || existsSync(join(dir, "precompute.ts")), `${slug}/sim.ts か precompute.ts`).toBe(true);
       });
 
       it("index.mdx の frontmatter がスキーマに合う（preprint を含む）", () => {
@@ -102,7 +105,7 @@ describe("現象ページのフォルダ規約", () => {
         expect(result.success, result.error?.message).toBe(true);
       });
 
-      it("sim.ts の既定値で setup でき、tEnd が dt の整数倍で、格子点数が 2 のべき", async () => {
+      it.runIf(hasSim)("sim.ts の既定値で setup でき、tEnd が dt の整数倍で、格子点数が 2 のべき", async () => {
         const mod = (await import(`../src/content/phenomena/${slug}/sim.ts`)) as { default: SimDefinition };
         const def = mod.default;
         for (const p of def.params) {
