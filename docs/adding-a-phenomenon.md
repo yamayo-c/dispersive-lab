@@ -116,7 +116,7 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 - 事前計算の結果だけを見せるページでは `sim.ts` を省ける（ブラウザでのシミュレーションは出ない）。
 - `run` の中で検証（保存量のずれ・厳密解との誤差など）を測り、閾値を超えたら例外を投げる。例外が出ると CI が失敗し、公開されない。`verify.test.ts` には同じ計算を小さくした設定で検証を書く（4 の決まりは同じ）。
 - 手元では `npm run precompute -- run <slug>` で `public/precomputed/<slug>/` に書き出してから確かめる。
-- CI（`ci.yml`・`preview.yml`・`deploy.yml`）は `npm run precompute -- sync` で、計算に関わるファイル（ページのフォルダ・`src/solvers`・`src/lib`・依存関係）が変わったときだけ Cloud Run Jobs で計算し直し、結果を取ってくる。資格情報は [deploy.md](deploy.md)。
+- CI（`ci.yml`・`preview.yml`・`deploy.yml`）は `npm run precompute -- sync` で、計算に関わるファイル（ページのフォルダのうち `index.mdx`・`verify.test.ts` 以外、`src/solvers`・`src/lib`・`scripts/precompute.ts`・依存関係）が変わったときだけ Cloud Run Jobs で計算し直し、結果を取ってくる。解説の本文を直しただけでは計算し直さない。CI とプレビューは同じコミットで同時に `sync` を呼ぶが、同じハッシュの計算が走っていれば後から来た側はそれを待つ。資格情報は [deploy.md](deploy.md)。
 
 ## 7. 確かめてから PR を出す
 

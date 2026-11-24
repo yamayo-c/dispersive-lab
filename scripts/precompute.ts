@@ -58,7 +58,8 @@ function listFiles(dir: string): string[] {
 /** 計算に関わるファイル（ページのフォルダ・solver・lib・このスクリプト・依存関係）の内容のハッシュ */
 function sourceHash(slug: string): string {
   const files = [
-    ...listFiles(join(PHENOMENA, slug)),
+    // 解説（index.mdx）は計算に関わらないので入れない。本文を直しただけで計算し直さないため
+    ...listFiles(join(PHENOMENA, slug)).filter((f) => !f.endsWith(".mdx")),
     ...listFiles(join(ROOT, "src", "solvers")),
     ...listFiles(join(ROOT, "src", "lib")),
     join(ROOT, "scripts", "precompute.ts"),
@@ -79,6 +80,12 @@ function sourceHash(slug: string): string {
 /** タスクを 1 つ動かし、out に結果、done に完了の印を書く */
 async function runTask(def: PrecomputeDefinition, taskIndex: number, out: string, done?: string): Promise<void> {
   const count = taskCount(def);
+  // 同じハッシュの別の実行がこのタスクを済ませていれば計算しない（結果はハッシュが同じなら同じ。
+  // 書き直すと、取ってくる途中の側がファイルを見失う）
+  if (done && existsSync(join(done, String(taskIndex)))) {
+    console.info(`タスク ${taskIndex} は済んでいるので計算しない`);
+    return;
+  }
   await mkdir(out, { recursive: true });
   await def.run({
     taskIndex,
@@ -171,6 +178,63 @@ function headSha(): string {
   return r.stdout.trim();
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+interface Execution {
+  metadata: { name: string };
+  spec?: { template?: { spec?: { containers?: { env?: { name: string; value?: string }[] }[] } } };
+  status?: { completionTime?: string };
+}
+
+/**
+ * 同じ slug・ハッシュで走っている実行の名前。
+ * CI（ci.yml）とプレビュー（preview.yml）は同じコミットで同時に sync を呼ぶので、
+ * 片方が始めた計算をもう片方が重ねて始めないようにする（2026-11-24 の PR #20 で、重なった実行が
+ * 結果を書き直している最中にもう片方が取ってきて 404 になった）。
+ */
+function runningExecutions(slug: string, hash: string): string[] {
+  const out = gcloud(
+    ["run", "jobs", "executions", "list", `--job=${JOB}`, `--project=${PROJECT}`, `--region=${REGION}`, "--limit=20", "--format=json"],
+    { capture: true, allowFail: true },
+  );
+  if (!out.trim()) return [];
+  return (JSON.parse(out) as Execution[])
+    .filter((e) => {
+      if (e.status?.completionTime) return false;
+      const env = new Map((e.spec?.template?.spec?.containers?.[0]?.env ?? []).map((v) => [v.name, v.value]));
+      return env.get("SLUG") === slug && env.get("HASH") === hash;
+    })
+    .map((e) => e.metadata.name);
+}
+
+/** 実行が終わるまで待つ */
+async function waitExecution(name: string): Promise<void> {
+  for (;;) {
+    const out = gcloud(
+      ["run", "jobs", "executions", "describe", name, `--project=${PROJECT}`, `--region=${REGION}`, "--format=json"],
+      { capture: true, allowFail: true },
+    );
+    if (!out.trim() || (JSON.parse(out) as Execution).status?.completionTime) return;
+    await sleep(20_000);
+  }
+}
+
+/** 結果を取ってくる。重なった実行が書き直している最中は 404 になることがあるので、少し待ってやり直す */
+async function fetchResults(slug: string, hash: string, dest: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    rmSync(dest, { recursive: true, force: true });
+    mkdirSync(dest, { recursive: true });
+    try {
+      gcloud(["storage", "cp", "--recursive", `gs://${BUCKET}/data/${slug}/${hash}/*`, dest]);
+      return;
+    } catch (e) {
+      if (attempt >= 5) throw e;
+      console.info(`${slug}: 取ってくるのに失敗したので 20 秒後にやり直す（${attempt} 回目）`);
+      await sleep(20_000);
+    }
+  }
+}
+
 async function sync(): Promise<void> {
   let deployed = false;
   for (const slug of precomputeSlugs()) {
@@ -181,6 +245,13 @@ async function sync(): Promise<void> {
         deployJob();
         deployed = true;
       }
+      // 実行を始める直前に、同じハッシュの実行が走っていないかを見る（走っていれば待ち、済んだならそれを使う）
+      for (const name of runningExecutions(slug, hash)) {
+        console.info(`${slug}: 同じハッシュ（${hash}）の実行 ${name} が走っているので、終わるのを待つ`);
+        await waitExecution(name);
+      }
+    }
+    if (doneCount(slug, hash) < tasks) {
       console.info(`${slug}: 計算する（${hash}、${tasks} タスク）`);
       gcloud([
         "run", "jobs", "execute", JOB, `--project=${PROJECT}`, `--region=${REGION}`, `--tasks=${tasks}`,
@@ -188,10 +259,7 @@ async function sync(): Promise<void> {
       ]);
       if (doneCount(slug, hash) < tasks) throw new Error(`${slug}: 完了しなかったタスクがある`);
     }
-    const dest = join(LOCAL_OUT, slug);
-    rmSync(dest, { recursive: true, force: true });
-    mkdirSync(dest, { recursive: true });
-    gcloud(["storage", "cp", "--recursive", `gs://${BUCKET}/data/${slug}/${hash}/*`, dest]);
+    await fetchResults(slug, hash, join(LOCAL_OUT, slug));
     console.info(`${slug}: ${hash} の結果を取ってきた`);
   }
 }
