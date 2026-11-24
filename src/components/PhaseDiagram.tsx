@@ -54,7 +54,8 @@ const STYLE = `
 }
 .pd { margin: 1.5rem 0; }
 .pd-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; }
-.pd-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.pd-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.pd .pd-cal { font-family: KaTeX_Caligraphic, serif; font-style: normal; font-weight: normal; font-size: 1.1em; }
 .pd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .pd figure { margin: 0; }
 .pd figcaption { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
@@ -110,6 +111,12 @@ function Marker({ outcome, cx, cy, size }: { outcome: Outcome; cx: number; cy: n
     return <rect x={cx - r} y={cy - r} width={size} height={size} fill={COLOR.blowup} stroke="var(--surface)" strokeWidth={1} />;
   return <circle cx={cx} cy={cy} r={r - 1} fill="none" stroke={COLOR.undecided} strokeWidth={2} />;
 }
+
+/** 地図の比の記号 ME・G を、本文の KaTeX の \mathcal と同じ KaTeX_Caligraphic で描く（HTML 用と SVG 用） */
+const ME = <span className="pd-cal">ME</span>;
+const G = <span className="pd-cal">G</span>;
+const SvgME = <tspan className="pd-cal">ME</tspan>;
+const SvgG = <tspan className="pd-cal">G</tspan>;
 
 function fmt(v: number, d = 3) {
   return Number(v.toFixed(d)).toString();
@@ -224,13 +231,20 @@ export default function PhaseDiagram() {
           <svg width="20" height="12" viewBox="0 0 20 12" style={{ border: "none", background: "none", width: 20 }}>
             <line x1="0" y1="6" x2="20" y2="6" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
           </svg>
-          定理の境界（ℳℰ = 1・𝒢 = 1）
+          <span>
+            定理の境界（{ME} = 1・{G} = 1）
+          </span>
         </span>
       </div>
       <div className="pd-tip" aria-live="polite">
-        {activePoint
-          ? `p = ${fmt(activePoint.p, 2)}, γ = ${fmt(activeGamma, 2)}: ${LABEL[activePoint.outcome]}（t = ${fmt(activePoint.t, 2)} で判定）, ℳℰ = ${fmt(activePoint.x)}, 𝒢 = ${fmt(activePoint.y)}`
-          : "点にカーソルを合わせる（タップする）と、値と時間変化が出ます。"}
+        {activePoint ? (
+          <>
+            {`p = ${fmt(activePoint.p, 2)}, γ = ${fmt(activeGamma, 2)}: ${LABEL[activePoint.outcome]}（t = ${fmt(activePoint.t, 2)} で判定）, `}
+            {ME} = {fmt(activePoint.x)}, {G} = {fmt(activePoint.y)}
+          </>
+        ) : (
+          "点にカーソルを合わせる（タップする）と、値と時間変化が出ます。"
+        )}
       </div>
       <div className="pd-grid">
         <figure>
@@ -295,11 +309,11 @@ export default function PhaseDiagram() {
             </text>
           </svg>
           <figcaption>
-            (p, γ) の地図。実線は γ ごとに二分法で求めた閾値。破線は ℳℰ = 1 と 𝒢 = 1 の曲線で、いちばん左の破線より左（ℳℰ &lt; 1, 𝒢 &lt; 1）が「定理で散乱」、右下の破線より右（ℳℰ &lt; 1, 𝒢 &gt; 1）が「定理で爆発」の領域。
+            (p, γ) の地図。実線は γ ごとに二分法で求めた閾値。破線は {ME} = 1 と {G} = 1 の曲線で、いちばん左の破線より左（{ME} &lt; 1, {G} &lt; 1）が「定理で散乱」、右下の破線より右（{ME} &lt; 1, {G} &gt; 1）が「定理で爆発」の領域。
           </figcaption>
         </figure>
         <figure>
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="同じ点をスケール不変な 2 つの比 ℳℰ, 𝒢 の平面に置いた図">
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="同じ点を、質量とエネルギーの積の比（横軸）と、L2 ノルムと勾配の L2 ノルムの積の比（縦軸）の平面に置いた図">
             <rect x={qx(X.lo)} y={qy(1)} width={qx(1) - qx(X.lo)} height={qy(0) - qy(1)} fill="var(--pd-region)" />
             <path d={forbiddenPath} fill="var(--pd-forbidden)" />
             {[0, 1, 2].map((x) => (
@@ -336,17 +350,17 @@ export default function PhaseDiagram() {
               </text>
             ))}
             <text x={(M.l + W - M.r) / 2} y={H - 4} textAnchor="middle">
-              ℳℰ = M E / (M[Q] E[Q])
+              {SvgME} = M E / (M[Q] E[Q])
             </text>
             <text x={12} y={(M.t + H - M.b) / 2} textAnchor="middle" transform={`rotate(-90 12 ${(M.t + H - M.b) / 2})`}>
-              𝒢 = ‖u₀‖‖∇u₀‖ / (‖Q‖‖∇Q‖)
+              {SvgG} = ‖u₀‖‖∇u₀‖ / (‖Q‖‖∇Q‖)
             </text>
             <text x={qx(0.25)} y={qy(0.1)}>定理で散乱</text>
             <text x={qx(-0.6)} y={qy(2.35)}>定理で爆発</text>
             <text x={qx(-1.9)} y={qy(0.5)}>到達できない</text>
           </svg>
           <figcaption>
-            (ℳℰ, 𝒢) 平面。灰色は Gagliardo–Nirenberg の不等式から到達できない領域 ℳℰ &lt; 3𝒢² − 2𝒢³。±γ の点は同じ位置に重なる。範囲の外の {outside} 点は描いていない。
+            ({ME}, {G}) 平面。灰色は Gagliardo–Nirenberg の不等式から到達できない領域 {ME} &lt; 3{G}² − 2{G}³。±γ の点は同じ位置に重なる。範囲の外の {outside} 点は描いていない。
           </figcaption>
         </figure>
       </div>
