@@ -1,0 +1,83 @@
+---
+title: Talbot 効果（周期区間の線形 Schrödinger）
+summary: 段差の初期値を周期区間で時間発展させると、時刻 t = 2π·p/q（有理数の割合）では解が高々 2q 個の跳びをもつ階段になり、無理数の割合の時刻ではギザギザのグラフになる。t = 2π でちょうど初期値に戻る。
+equation: i\,\partial_t u + \partial_x^2 u = 0, \qquad x \in \mathbb{R}/2\pi\mathbb{Z}
+order: 15
+equations: [linear-schrodinger]
+tags: [dispersion, exact-solution, recurrence]
+verification:
+  - kind: exact
+    description: 有理時間の選択肢 t = 2π·p/q（p/q = 1/2, 1/4, 3/8, 5/16, 7/32, 1）のすべてで、格子点での数値解と Gauss 和の公式の最大誤差が 1e-10 未満（実測 9.1e-13〜1.2e-11）。
+  - kind: exact
+    description: t = π で半周期ずらした初期値 g(x − π) との最大誤差が 1e-10 未満（実測 6.0e-12）、t = 2π で初期値との最大誤差が 1e-10 未満（実測 1.2e-11）。
+  - kind: conservation
+    description: すべての選択肢で、質量 ∫|u|² の相対変化が 1e-12 未満（実測 3.6e-14 以下）。
+  - kind: convergence
+    description: 有理時間では、格子点を N = 512・1024・2048 と変えても隣り合う格子点で値が変わる箇所の数（跳びの数）と全変動 Σ|u_{j+1} − u_j| が変わらない（差 1e-8 未満）。跳びは高々 2q 個で、q = 4, 8, 16, 32 では跳びがちょうど q 個、全変動が √(2q) と 1e-8 以内で一致する。
+  - kind: convergence
+    description: 無理数の割合の時刻（τ = 1/√2, 1/π）では、格子点を N = 512 → 1024 → 2048 → 4096 と倍にするたびに全変動が増える（実測 τ = 1/√2 で 28.4, 41.4, 55.9, 84.2、τ = 1/π で 29.0, 41.1, 49.1, 57.5。閾値は単調に増えることと、N = 4096 で N = 512 の 1.5 倍を超えること）。
+---
+
+## 何が起きているか
+
+周期区間 $[-\pi, \pi)$ 上の線形 Schrödinger 方程式 $i u_t + u_{xx} = 0$ では、初期値を Fourier 級数 $g(x) = \sum_{k \in \mathbb{Z}} \hat g_k e^{ikx}$ に展開すると、解は
+
+$$
+u(x, t) = \sum_{k \in \mathbb{Z}} \hat g_k\, e^{-ik^2 t} e^{ikx}
+$$
+
+と書けます。波数 $k$ の成分は速さの違う回転 $e^{-ik^2t}$ をするので、ふつうは波形がくずれていきます（分散）。ところが $k^2$ はいつも整数なので、$t = 2\pi$ で $e^{-ik^2 t} = 1$ となり、**解はちょうど初期値に戻ります**。また $t = \pi$ では $e^{-ik^2\pi} = (-1)^{k^2} = (-1)^k = e^{-ik\pi}$ なので、$u(x, \pi) = g(x - \pi)$、つまり**半周期ずれた初期値**になります。
+
+このページの初期値は段差
+
+$$
+g(x) = \begin{cases} 1 & (|x| < 1) \\ 0 & (1 < |x| \le \pi) \end{cases}
+$$
+
+です。
+
+### 有理時間: 階段になる
+
+$t = 2\pi p/q$（$p, q$ は互いに素な整数）とします。$(k + q)^2 = k^2 + 2kq + q^2$ なので $e^{-ik^2 t} = e^{-2\pi i k^2 p/q}$ は $k$ を $q$ で割った余りだけで決まります。これを $k \bmod q$ について離散 Fourier 展開すると、解は初期値を $2\pi/q$ ずつずらしたものの重ね合わせになります（Erdoğan–Tzirakis, Theorem 2.14）。
+
+$$
+u\Big(x, \frac{2\pi p}{q}\Big) = \frac{1}{q} \sum_{j=0}^{q-1} G_{p,q}(j)\, g\Big(x - \frac{2\pi j}{q}\Big),
+\qquad
+G_{p,q}(j) = \sum_{l=0}^{q-1} e^{-2\pi i l^2 p/q}\, e^{2\pi i l j/q}.
+$$
+
+実際、右辺の Fourier 係数は $\hat g_k \cdot \frac1q \sum_j G_{p,q}(j) e^{-2\pi i kj/q} = \hat g_k\, e^{-2\pi i k^2 p/q}$ で、左辺と一致します。$G_{p,q}(j)$ は Gauss 和と呼ばれる有限和です。
+
+段差 $g$ には跳びが 2 つしかないので、これを $q$ 通りにずらして足した解は、**跳びが高々 $2q$ 個の階段関数** になります。滑らかでない初期値が、有理時間には有限個の値しかとらない関数に「量子化」されるので、この現象は dispersive quantization とも呼ばれます（Olver は Airy 型の方程式 $u_t = u_{xxx}$ で同じ現象を調べています）。光学では、回折格子の像が一定の距離ごとに再び現れる Talbot 効果として知られています（Berry–Klein）。
+
+このページで選べる $q = 4, 8, 16, 32$ では、$G_{p,q}(j)$ は半分の $j$ で 0 になり、残りの $j$ では $|G_{p,q}(j)| = \sqrt{2q}$ です。そのため階段の跳びはちょうど $q$ 個で、どれも大きさ $\sqrt{2/q}$ になります（下の検証で、跳びの数と全変動 $\sqrt{2q}$ を確かめています）。
+
+### 無理数の時刻: ギザギザになる
+
+$t/2\pi$ が無理数のときは、このような有限和の表示はありません。Erdoğan–Tzirakis の Theorem 2.15 によると、段差のように有界変動だが $H^{1/2+\varepsilon}$（$\varepsilon > 0$）のどれにも入らない初期値では、ほとんどすべての $t$ で解 $u(\cdot, t)$ の実部と虚部のグラフのフラクタル次元が $3/2$ になります。
+
+数値計算で見えるのは、$N$ 個の Fourier モードで近似したグラフです。無理数の割合の時刻では、格子点を倍にするたびに、より細かいギザギザが現れ、全変動 $\sum_j |u_{j+1} - u_j|$ が増え続けます（下の検証）。有理時間では、格子点を変えても全変動が変わらないのと対照的です。
+
+### 操作
+
+「止める時刻」で、時間発展を止める時刻 $t = 2\pi\tau$ を選びます。
+
+- $\tau = 1/2, 1/4, 3/8, 5/16, 7/32$: 階段になる。$q$ が大きいほど段が細かい。
+- $\tau = 1$: 初期値に戻る。
+- $\tau = 1/\sqrt{2}$、$1/\pi$（$t = 2$）: ギザギザのグラフ。
+
+再生すると、$t = 0$ から選んだ時刻までの途中も見えます。$|u|$ のほかに $\mathrm{Re}\,u$、$\mathrm{Im}\,u$ も表示できます。
+
+## 計算の方法
+
+空間は Fourier スペクトル法（格子点 $N = 1024$）、時間発展は各 Fourier 係数に $e^{-ik^2\Delta t}$ を掛けるだけです。線形方程式ではこれが厳密なので、時間刻みによる誤差はありません。
+
+初期値は格子点 $x_i = -\pi + 2\pi i/N$ での段差の値です（跳びの点 $\pm 1$ は格子点になりません）。計算しているのは、この $N$ 個の値を通る三角多項式の時間発展です。それでも $q$ が $N$ の約数なら、$2\pi j/q$ のずれは格子点 $jN/q$ 個ぶんのずれなので、上の Gauss 和の公式がそのまま格子点の値について成り立ちます。つまり有理時間では、**格子点での数値解が真の解の値と丸め誤差の範囲で一致** します（検証では最大誤差 $1.2 \times 10^{-11}$ 以下）。段差を有限個のモードで描くと現れる Gibbs 振動も、有理時間の格子点の値には出てきません。
+
+一方、無理数の割合の時刻の格子点の値は、真の解の値そのものではなく、$N$ 個のモードによる近似です。無理数の割合の時刻では真の解は連続関数になります（Oskolkov の結果。Erdoğan–Tzirakis, 2.3 節）が、そのグラフの細かい構造は格子の間隔より細かいところまで続くので、どの $N$ でも描き切れません。
+
+## 参考文献
+
+- M. B. Erdoğan, N. Tzirakis, *Dispersive Partial Differential Equations: Wellposedness and Applications*, London Mathematical Society Student Texts 86, Cambridge University Press, 2016. 2.3 節 The Talbot effect（pp. 32–36、Theorem 2.14・2.15）。
+- M. V. Berry, S. Klein, Integer, fractional and fractal Talbot effects, *Journal of Modern Optics* 43 (1996) 2139–2164. doi:10.1080/095003496154761
+- P. J. Olver, Dispersive quantization, *American Mathematical Monthly* 117 (2010) 599–610.

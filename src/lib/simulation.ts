@@ -25,6 +25,8 @@ export interface ParamSpec {
   default: number;
   /** 補足の説明（任意） */
   description?: string;
+  /** スライダーの横に出す値の表示（任意。省略時は数値のまま）。選択肢の番号を名前で見せるときに使う */
+  format?: (value: number) => string;
 }
 
 export type ParamValues = Readonly<Record<string, number>>;

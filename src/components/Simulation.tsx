@@ -275,7 +275,7 @@ function ParamSlider({ spec, value, onChange }: { spec: ParamSpec; value: number
   return (
     <div className="sim-param">
       <label htmlFor={id}>
-        {spec.label} <output htmlFor={id}>{value}</output>
+        {spec.label} <output htmlFor={id}>{spec.format ? spec.format(value) : value}</output>
       </label>
       <input
         id={id}
