@@ -84,8 +84,8 @@ export function gaussianInvariants(p: number, gamma: number) {
 
 /**
  * スケール不変な 2 つの量
- *   x = M[u₀]E[u₀] / (M[Q]E[Q]),   y = ‖u₀‖₂‖∇u₀‖₂ / (‖Q‖₂‖∇Q‖₂).
- * Holmer–Roudenko: x < 1 かつ y < 1 なら散乱、x < 1 かつ y > 1 なら爆発。
+ *   ℳℰ = M[u₀]E[u₀] / (M[Q]E[Q]),   𝒢 = ‖u₀‖₂‖∇u₀‖₂ / (‖Q‖₂‖∇Q‖₂)（返り値の x が ℳℰ、y が 𝒢）.
+ * Holmer–Roudenko: ℳℰ < 1 かつ 𝒢 < 1 なら散乱、ℳℰ < 1 かつ 𝒢 > 1 なら爆発。
  */
 export function scaleInvariants(p: number, gamma: number, q = groundStateConstants()) {
   const g = gaussianInvariants(p, gamma);
@@ -210,7 +210,7 @@ export const HPR_TOLERANCE = 0.015;
 
 /** 解像度を変えた判定の比較から外す、閾値からの距離 */
 export const NEAR_THRESHOLD = 0.02;
-/** 定理との一致を確かめる範囲 x < 0.98 */
+/** 定理との一致を確かめる範囲 ℳℰ < 0.98 */
 export const THEOREM_MARGIN = 0.98;
 /** 質量のずれの上限（判定した時刻まで） */
 export const MASS_DRIFT_LIMIT = 1e-8;
@@ -249,12 +249,12 @@ export default definePrecompute({
       }
     }
 
-    // 4. 定理との一致（x < 0.98 の点）
+    // 4. 定理との一致（ℳℰ < 0.98 の点）
     for (const pt of points) {
       if (pt.x < THEOREM_MARGIN) {
         const expected = pt.y < 1 ? "scatter" : "blowup";
         if (pt.outcome !== expected) {
-          throw new Error(`${label}, p = ${pt.p}: x = ${pt.x}, y = ${pt.y} なのに判定が ${pt.outcome}`);
+          throw new Error(`${label}, p = ${pt.p}: ℳℰ = ${pt.x}, 𝒢 = ${pt.y} なのに判定が ${pt.outcome}`);
         }
       }
     }

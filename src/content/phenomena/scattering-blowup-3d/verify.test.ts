@@ -31,7 +31,7 @@ describe("散乱と爆発の相図（3 次元球対称 focusing 立方 NLS）", 
     expect(q.mass).toBeCloseTo(18.8973, 3);
   });
 
-  it("[厳密解] ページと同じ格子で、初期値の質量・‖∇u₀‖²・‖u₀‖⁴_4 が解析的な値と一致する（x, y の計算の確認）", () => {
+  it("[厳密解] ページと同じ格子で、初期値の質量・‖∇u₀‖²・‖u₀‖⁴_4 が解析的な値と一致する（ℳℰ, 𝒢 の計算の確認）", () => {
     for (const [p, g] of [
       [0.5, -1],
       [2, 0],
@@ -51,14 +51,14 @@ describe("散乱と爆発の相図（3 次元球対称 focusing 立方 NLS）", 
     }
   });
 
-  it("鋭い Gagliardo–Nirenberg の不等式から、どの点も x ≥ 3y² − 2y³ を満たす", () => {
+  it("鋭い Gagliardo–Nirenberg の不等式から、どの点も ℳℰ ≥ 3𝒢² − 2𝒢³ を満たす", () => {
     let worst = Infinity;
     for (let p = 0.5; p <= 4 + 1e-9; p += 0.05)
       for (let g = -1; g <= 1 + 1e-9; g += 0.05) {
         const { x, y } = scaleInvariants(p, g);
         worst = Math.min(worst, x - (3 * y * y - 2 * y ** 3));
       }
-    console.info(`min (x − 3y² + 2y³) = ${worst.toExponential(3)}`);
+    console.info(`min (ℳℰ − 3𝒢² + 2𝒢³) = ${worst.toExponential(3)}`);
     expect(worst).toBeGreaterThan(0);
   });
 
@@ -77,7 +77,7 @@ describe("散乱と爆発の相図（3 次元球対称 focusing 立方 NLS）", 
     expect(r.massDrift).toBeLessThan(1e-10);
   }, LONG);
 
-  it("[収束] 定理の領域（x < 0.98）の点で、判定が定理どおりで、格子点を半分・時間刻みを半分にしても変わらない", () => {
+  it("[収束] 定理の領域（ℳℰ < 0.98）の点で、判定が定理どおりで、格子点を半分・時間刻みを半分にしても変わらない", () => {
     for (const [p, g] of [
       [1.5, 0],
       [3, 0],
@@ -88,7 +88,7 @@ describe("散乱と爆発の相図（3 次元球対称 focusing 立方 NLS）", 
       const expected = y < 1 ? "scatter" : "blowup";
       for (const opts of [{}, { nFactor: 0.5 }, { dtFactor: 0.5 }]) {
         const r = evolvePoint(p, g, opts);
-        console.info(`p = ${p}, γ = ${g} (x = ${x.toFixed(3)}, y = ${y.toFixed(3)}) ${JSON.stringify(opts)}: ${r.outcome}（t = ${r.t.toFixed(3)}）`);
+        console.info(`p = ${p}, γ = ${g} (ℳℰ = ${x.toFixed(3)}, 𝒢 = ${y.toFixed(3)}) ${JSON.stringify(opts)}: ${r.outcome}（t = ${r.t.toFixed(3)}）`);
         expect(r.outcome, `${p}, ${g}, ${JSON.stringify(opts)}`).toBe(expected);
       }
     }
