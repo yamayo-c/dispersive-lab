@@ -12,6 +12,7 @@
   --plot-re: #2456c9;
   --plot-im: #c23b6b;
   --plot-exact: #e08a00;
+  --plot-marker: #3f8f5a;
   --radius: 8px;
   --max-width: 52rem;
   color-scheme: light dark;
@@ -32,6 +33,7 @@
     --plot-re: #7ea2ff;
     --plot-im: #f07ca4;
     --plot-exact: #ffb340;
+    --plot-marker: #6fcf8f;
   }
 }
 

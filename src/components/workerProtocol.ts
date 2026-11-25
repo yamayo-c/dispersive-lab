@@ -1,4 +1,4 @@
-import type { ParamValues } from "../lib/simulation";
+import type { Marker, ParamValues } from "../lib/simulation";
 
 /** メインスレッド → Worker */
 export type WorkerRequest =
@@ -21,6 +21,8 @@ export type WorkerResponse =
       n: number;
       yRange: readonly [number, number];
       hasExact: boolean;
+      /** 実数値の方程式（KdV など）なら true。u そのものを描き、Re/Im/|u| の切り替えを出さない */
+      real: boolean;
       frame: Frame;
     }
   | { type: "frame"; requestId: number; frame: Frame }
@@ -32,12 +34,10 @@ export interface Frame {
   im: Float64Array;
   exactRe?: Float64Array;
   exactIm?: Float64Array;
-  /** 質量 ∫|u|² の t = 0 からの相対変化 */
-  massDrift: number;
-  /** エネルギーの t = 0 からの相対変化 */
-  energyDrift: number;
-  /** 厳密解との相対 L² 誤差（厳密解があるときだけ） */
-  exactError?: number;
+  /** 画面に出す数値（保存量の相対変化など）。値は表示用に整形した文字列 */
+  stats: readonly { label: string; value: string }[];
+  /** グラフに重ねる縦線の印 */
+  markers?: readonly Marker[];
   /** tEnd に達したか */
   done: boolean;
 }

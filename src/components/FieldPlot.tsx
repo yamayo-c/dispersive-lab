@@ -9,9 +9,17 @@ export interface Curve {
   dashed?: boolean;
 }
 
+/** 縦線の印 */
+export interface PlotMarker {
+  x: number;
+  label: string;
+}
+
 interface Props {
   x: Float64Array;
   curves: readonly Curve[];
+  /** 縦線で重ねる印（任意） */
+  markers?: readonly PlotMarker[];
   yRange: readonly [number, number];
   /** アクセシビリティ用の説明 */
   ariaLabel: string;
@@ -46,7 +54,7 @@ function resolveColor(el: Element, color: string): string {
 }
 
 /** 1 次元の場を描く canvas（周期区間なので右端の点 x = xMin + L は描かない） */
-export default function FieldPlot({ x, curves, yRange, ariaLabel }: Props) {
+export default function FieldPlot({ x, curves, markers, yRange, ariaLabel }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
 
@@ -124,6 +132,24 @@ export default function FieldPlot({ x, curves, yRange, ariaLabel }: Props) {
     ctx.rect(MARGIN.left, MARGIN.top, pw, ph);
     ctx.clip();
     ctx.lineJoin = "round";
+    if (markers && markers.length > 0) {
+      ctx.strokeStyle = resolveColor(canvas, "--plot-marker");
+      ctx.fillStyle = resolveColor(canvas, "--plot-marker");
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([2, 4]);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      for (const [i, m] of markers.entries()) {
+        if (m.x < x0 || m.x > x1) continue;
+        const px = sx(m.x);
+        ctx.beginPath();
+        ctx.moveTo(px, MARGIN.top);
+        ctx.lineTo(px, MARGIN.top + ph);
+        ctx.stroke();
+        // 印どうしが近いときに文字が重ならないよう、段をずらす
+        ctx.fillText(m.label, px + 4, MARGIN.top + 4 + i * 16);
+      }
+    }
     for (const c of curves) {
       ctx.strokeStyle = resolveColor(canvas, c.color);
       ctx.lineWidth = c.dashed ? 1.5 : 2;

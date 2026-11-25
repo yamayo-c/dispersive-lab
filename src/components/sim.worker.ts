@@ -1,26 +1,51 @@
 /// <reference lib="webworker" />
-import { mass, relativeDrift, schrodingerEnergy } from "../lib/conserved";
+import { kdvEnergy, kdvIntegral, kdvL2, mass, relativeDrift, schrodingerEnergy } from "../lib/conserved";
 import { relativeL2Error } from "../lib/norms";
-import { createSolver, sampleExact, totalSteps, type SimSetup } from "../lib/simulation";
+import { createSolver, sampleExact, totalSteps, type SimSetup, type SimSolver } from "../lib/simulation";
 import { FFT } from "../solvers/fft";
-import { gridPoints } from "../solvers/grid";
-import type { SchrodingerSplitStep } from "../solvers/schrodinger";
+import { gridPoints, type ComplexField } from "../solvers/grid";
 import { loadSim } from "./simModules";
 import type { Frame, WorkerRequest, WorkerResponse } from "./workerProtocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
+/** 保存量: 名前と、場から値を計算する関数 */
+interface Quantity {
+  label: string;
+  compute: (u: ComplexField) => number;
+}
+
 interface State {
   setup: SimSetup;
-  solver: SchrodingerSplitStep;
-  fft: FFT;
-  mass0: number;
-  energy0: number;
+  solver: SimSolver;
+  quantities: Quantity[];
+  initialValues: number[];
   stepsDone: number;
   stepsTotal: number;
 }
 
 let state: State | undefined;
+
+function formatSci(v: number): string {
+  if (!Number.isFinite(v)) return "—";
+  if (v === 0) return "0";
+  return v.toExponential(2);
+}
+
+function quantitiesFor(setup: SimSetup): Quantity[] {
+  const fft = new FFT(setup.grid.n);
+  if (setup.kind === "kdv") {
+    return [
+      { label: "∫u dx の変化", compute: (u) => kdvIntegral(setup.grid, u.re) },
+      { label: "∫u² dx の相対変化", compute: (u) => kdvL2(setup.grid, u.re) },
+      { label: "エネルギー H の相対変化", compute: (u) => kdvEnergy(setup.grid, u.re, fft) },
+    ];
+  }
+  return [
+    { label: "質量 ∫|u|² の相対変化", compute: (u) => mass(setup.grid, u) },
+    { label: "エネルギーの相対変化", compute: (u) => schrodingerEnergy(setup.grid, u, setup.equation, fft) },
+  ];
+}
 
 function post(msg: WorkerResponse): void {
   const transfer: Transferable[] = [];
@@ -38,15 +63,22 @@ function makeFrame(s: State): Frame {
   const { setup, solver } = s;
   const u = solver.snapshot();
   const exact = sampleExact(setup, solver.t);
+  const stats = s.quantities.map((q, i) => {
+    const v = q.compute(u);
+    const v0 = s.initialValues[i]!;
+    // ∫u dx は 0 に近いこともあるので、KdV では絶対的な変化を出す
+    const d = setup.kind === "kdv" && i === 0 ? Math.abs(v - v0) : relativeDrift(v, v0);
+    return { label: q.label, value: formatSci(d) };
+  });
+  if (exact) stats.push({ label: "厳密解との相対 L² 誤差", value: formatSci(relativeL2Error(setup.grid, u, exact)) });
   return {
     t: solver.t,
     re: u.re,
     im: u.im,
     exactRe: exact?.re,
     exactIm: exact?.im,
-    massDrift: relativeDrift(mass(setup.grid, u), s.mass0),
-    energyDrift: relativeDrift(schrodingerEnergy(setup.grid, u, setup.equation, s.fft), s.energy0),
-    exactError: exact ? relativeL2Error(setup.grid, u, exact) : undefined,
+    stats,
+    markers: setup.kind === "kdv" ? setup.markers?.(solver.t) : undefined,
     done: s.stepsDone >= s.stepsTotal,
   };
 }
@@ -56,8 +88,12 @@ function autoRange(setup: SimSetup): readonly [number, number] {
   const x = gridPoints(setup.grid);
   let m = 0;
   for (const xi of x) {
-    const [a, b] = setup.initial(xi);
-    m = Math.max(m, Math.hypot(a, b));
+    if (setup.kind === "kdv") {
+      m = Math.max(m, Math.abs(setup.initial(xi)));
+    } else {
+      const [a, b] = setup.initial(xi);
+      m = Math.max(m, Math.hypot(a, b));
+    }
   }
   const top = m > 0 ? m * 1.15 : 1;
   return [-top, top];
@@ -69,15 +105,14 @@ self.onmessage = async (ev: MessageEvent<WorkerRequest>) => {
     if (req.type === "init") {
       const def = await loadSim(req.slug);
       const setup = def.setup(req.params);
-      const solver = createSolver(setup);
-      const fft = new FFT(setup.grid.n);
+      const solver: SimSolver = createSolver(setup);
+      const quantities = quantitiesFor(setup);
       const u0 = solver.snapshot();
       state = {
         setup,
         solver,
-        fft,
-        mass0: mass(setup.grid, u0),
-        energy0: schrodingerEnergy(setup.grid, u0, setup.equation, fft),
+        quantities,
+        initialValues: quantities.map((q) => q.compute(u0)),
         stepsDone: 0,
         stepsTotal: totalSteps(setup),
       };
@@ -90,6 +125,7 @@ self.onmessage = async (ev: MessageEvent<WorkerRequest>) => {
         n: setup.grid.n,
         yRange: autoRange(setup),
         hasExact: setup.exact !== undefined,
+        real: setup.kind === "kdv",
         frame: makeFrame(state),
       });
     } else if (req.type === "advance") {
