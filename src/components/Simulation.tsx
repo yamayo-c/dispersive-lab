@@ -16,15 +16,10 @@ interface Meta {
   n: number;
   yRange: readonly [number, number];
   hasExact: boolean;
+  real: boolean;
 }
 
 type Show = { abs: boolean; re: boolean; im: boolean; exact: boolean };
-
-function formatSci(v: number): string {
-  if (!Number.isFinite(v)) return "—";
-  if (v === 0) return "0";
-  return v.toExponential(2);
-}
 
 /**
  * 現象ページのシミュレーション部品。
@@ -77,7 +72,15 @@ export default function Simulation({ slug }: Props) {
         return;
       }
       if (msg.type === "ready") {
-        setMeta({ x: msg.x, tEnd: msg.tEnd, dt: msg.dt, n: msg.n, yRange: msg.yRange, hasExact: msg.hasExact });
+        setMeta({
+          x: msg.x,
+          tEnd: msg.tEnd,
+          dt: msg.dt,
+          n: msg.n,
+          yRange: msg.yRange,
+          hasExact: msg.hasExact,
+          real: msg.real,
+        });
       }
       setFrame(msg.frame);
       if (msg.frame.done) setPlaying(false);
@@ -153,6 +156,12 @@ export default function Simulation({ slug }: Props) {
     if (!frame) return [];
     const n = frame.re.length;
     const out: Curve[] = [];
+    if (meta?.real) {
+      // 実数値の方程式: u そのものを描く
+      if (show.exact && frame.exactRe) out.push({ label: "u 厳密解", color: "--plot-exact", values: frame.exactRe, dashed: true });
+      out.push({ label: "u", color: "--plot-abs", values: frame.re });
+      return out;
+    }
     if (show.exact && frame.exactRe && frame.exactIm) {
       const absEx = new Float64Array(n);
       for (let j = 0; j < n; j++) absEx[j] = Math.hypot(frame.exactRe[j]!, frame.exactIm[j]!);
@@ -168,7 +177,7 @@ export default function Simulation({ slug }: Props) {
       out.push({ label: "|u|", color: "--plot-abs", values: abs });
     }
     return out;
-  }, [frame, show]);
+  }, [frame, show, meta?.real]);
 
   if (error) {
     return (
@@ -186,7 +195,13 @@ export default function Simulation({ slug }: Props) {
   return (
     <div className="sim">
       <div className="sim-plot">
-        <FieldPlot x={meta.x} curves={curves} yRange={meta.yRange} ariaLabel={`時刻 t = ${frame.t.toFixed(3)} の解`} />
+        <FieldPlot
+          x={meta.x}
+          curves={curves}
+          markers={frame.markers}
+          yRange={meta.yRange}
+          ariaLabel={`時刻 t = ${frame.t.toFixed(3)} の解`}
+        />
       </div>
 
       <div className="sim-toolbar">
@@ -200,6 +215,12 @@ export default function Simulation({ slug }: Props) {
           t = {frame.t.toFixed(3)} / {meta.tEnd}
         </span>
         <span className="sim-legend">
+          {meta.real ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span className="swatch abs" /> u
+            </span>
+          ) : (
+            <>
           <label>
             <input type="checkbox" checked={show.abs} onChange={() => toggle("abs")} />
             <span className="swatch abs" /> |u|
@@ -212,6 +233,8 @@ export default function Simulation({ slug }: Props) {
             <input type="checkbox" checked={show.im} onChange={() => toggle("im")} />
             <span className="swatch im" /> Im u
           </label>
+            </>
+          )}
           {meta.hasExact && (
             <label>
               <input type="checkbox" checked={show.exact} onChange={() => toggle("exact")} />
@@ -245,20 +268,12 @@ export default function Simulation({ slug }: Props) {
       </div>
 
       <dl className="sim-stats">
-        <div>
-          <dt>質量 ∫|u|² の相対変化</dt>
-          <dd>{formatSci(frame.massDrift)}</dd>
-        </div>
-        <div>
-          <dt>エネルギーの相対変化</dt>
-          <dd>{formatSci(frame.energyDrift)}</dd>
-        </div>
-        {frame.exactError !== undefined && (
-          <div>
-            <dt>厳密解との相対 L² 誤差</dt>
-            <dd>{formatSci(frame.exactError)}</dd>
+        {frame.stats.map((st) => (
+          <div key={st.label}>
+            <dt>{st.label}</dt>
+            <dd>{st.value}</dd>
           </div>
-        )}
+        ))}
         <div>
           <dt>格子点数 / 時間刻み</dt>
           <dd>

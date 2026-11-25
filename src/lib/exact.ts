@@ -128,3 +128,45 @@ export function periodize(
   }
   return [re, im];
 }
+
+/**
+ * KdV 方程式 u_t + 6uu_x + u_xxx = 0（src/solvers/kdv.ts と同じ規約）の 1 ソリトン
+ *
+ *     u(x, t) = (k²/2) sech²( (k/2)(x − x₀ − k²t) ).
+ *
+ * 速さ k²、高さ k²/2（高いほど速い）。
+ */
+export function kdvSoliton(k: number, x0: number, x: number, t: number): number {
+  const s = 1 / Math.cosh((k / 2) * (x - x0 - k * k * t));
+  return ((k * k) / 2) * s * s;
+}
+
+/**
+ * KdV 方程式 u_t + 6uu_x + u_xxx = 0 の 2 ソリトン解（広田）
+ *
+ *     u = 2 (log τ)_xx,   τ = 1 + e^{η₁} + e^{η₂} + A₁₂ e^{η₁+η₂},
+ *     η_i = k_i x − k_i³ t + η_i⁰,   A₁₂ = ((k₁ − k₂)/(k₁ + k₂))².
+ *
+ * τ の 4 つの項を w_m = e^{θ_m}（θ = 0, η₁, η₂, η₁+η₂+log A₁₂）、x 微分の係数を
+ * κ_m = 0, k₁, k₂, k₁+k₂ と書くと  τ τ_xx − τ_x² = Σ_{m<l} w_m w_l (κ_m − κ_l)²  なので
+ *
+ *     u = 2 Σ_{m<l} w_m w_l (κ_m − κ_l)² / (Σ_m w_m)².
+ *
+ * 正の項の和だけで書けるので桁落ちがなく、w_m を最大の θ_m で割っておけば e^{η} が溢れることもない。
+ */
+export function kdvTwoSoliton(k1: number, k2: number, x: number, t: number, eta10 = 0, eta20 = 0): number {
+  const a12 = ((k1 - k2) / (k1 + k2)) ** 2;
+  const e1 = k1 * x - k1 ** 3 * t + eta10;
+  const e2 = k2 * x - k2 ** 3 * t + eta20;
+  const theta = [0, e1, e2, e1 + e2 + Math.log(a12)];
+  const kappa = [0, k1, k2, k1 + k2];
+  const m = Math.max(...theta);
+  const w = theta.map((th) => Math.exp(th - m));
+  let tau = 0;
+  for (const wi of w) tau += wi;
+  let num = 0;
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) num += w[i]! * w[j]! * (kappa[i]! - kappa[j]!) ** 2;
+  }
+  return (2 * num) / (tau * tau);
+}

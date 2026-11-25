@@ -68,3 +68,31 @@ export function relativeDrift(q: number, ref: number): number {
   const d = Math.abs(q - ref);
   return ref === 0 ? d : d / Math.abs(ref);
 }
+
+/*
+ * KdV 方程式 u_t + 6uu_x + u_xxx = 0（u は実数値）の保存量。
+ * u_t = ∂_x(δH/δu) の形（δH/δu = −u_xx − 3u²）なので、次の 3 つは滑らかな解で時間によらない。
+ */
+
+/** ∫ u dx */
+export function kdvIntegral(grid: Grid1D, u: Float64Array): number {
+  let s = 0;
+  for (let j = 0; j < grid.n; j++) s += u[j]!;
+  return s * gridSpacing(grid);
+}
+
+/** ∫ u² dx */
+export function kdvL2(grid: Grid1D, u: Float64Array): number {
+  let s = 0;
+  for (let j = 0; j < grid.n; j++) s += u[j]! * u[j]!;
+  return s * gridSpacing(grid);
+}
+
+/** H[u] = ∫ ( u_x²/2 − u³ ) dx（∫ u_x² は Parseval の等式で計算する） */
+export function kdvEnergy(grid: Grid1D, u: Float64Array, fft: FFT = new FFT(grid.n)): number {
+  let cubic = 0;
+  for (let j = 0; j < grid.n; j++) cubic += u[j]! ** 3;
+  cubic *= gridSpacing(grid);
+  const grad = gradientNormSquared(grid, { re: u, im: new Float64Array(grid.n) }, fft);
+  return grad / 2 - cubic;
+}

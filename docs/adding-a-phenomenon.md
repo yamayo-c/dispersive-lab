@@ -24,6 +24,7 @@ src/content/phenomena/<slug>/
 - `setup(params)`: パラメータから計算の設定を返す。
   - `grid`: `makeGrid(n, L)`。n は 2 のべき。区間は `[-L/2, L/2)`。
   - `equation`: 今は `i u_t + α u_xx + κ|u|²u = 0` の `{ alpha, kappa }` だけ（κ = 0 で線形、κ > 0 で focusing、κ < 0 で defocusing）。
+  - KdV 方程式 `u_t + 6uu_x + u_xxx = 0`（実数値）は `kind: "kdv"` にする（`equation` は無く、`initial`・`exact` は実数を返す）。`tStart` で計算を始める時刻を、`markers` でグラフに重ねる縦線の印を指定できる。見本は `src/content/phenomena/kdv-two-soliton/`。
   - `dt`、`stepsPerFrame`（描画 1 回で進めるステップ数）、`tEnd`（dt の整数倍）。
   - `initial(x)`: 初期値 `[Re, Im]`。
   - `exact(x, t)`（任意）: 厳密解。あればグラフに破線で重ね、誤差を画面に出す。

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { mass, momentum, relativeDrift, schrodingerEnergy } from "../../../lib/conserved";
 import { relativeL2Error } from "../../../lib/norms";
-import { createSolver, defaultParams, sampleExact, totalSteps, type SimSetup } from "../../../lib/simulation";
+import { createSolver, defaultParams, sampleExact, totalSteps, type SchrodingerSetup } from "../../../lib/simulation";
 import { gridPoints } from "../../../solvers/grid";
 import sim, { CENTER, LENGTH } from "./sim";
 
 /** 設定 setup で tEnd まで計算する */
-function runSetup(setup: SimSetup) {
+function runSetup(setup: SchrodingerSetup) {
   const solver = createSolver(setup);
   const u0 = solver.snapshot();
   solver.step(totalSteps(setup));
@@ -16,7 +16,7 @@ function runSetup(setup: SimSetup) {
 /** ページと同じ設定（格子点の数・時間刻みは変えられる）で tEnd まで計算する */
 function run(params: Record<string, number>, opts: { n?: number; dtFactor?: number } = {}) {
   const base = sim.setup(params);
-  const setup: SimSetup = {
+  const setup: SchrodingerSetup = {
     ...base,
     grid: { ...base.grid, n: opts.n ?? base.grid.n },
     dt: base.dt * (opts.dtFactor ?? 1),
