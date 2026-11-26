@@ -42,7 +42,7 @@ frontmatter（スキーマは `src/lib/frontmatter.ts`）:
 title: ページの題名
 summary: 一覧に出す 1〜2 文の説明
 equation: i\,\partial_t u + \partial_x^2 u = 0   # KaTeX の display 数式。$$ は付けない
-order: 20               # 一覧での並び順（小さい順）
+published: 2026-11-23   # 公開日。PR を出す日（日本時間）。一覧はこの新しい順に並ぶ
 equations: [linear-schrodinger]   # 扱う方程式。1 つ以上。src/lib/taxonomy.ts の EQUATIONS のキー
 tags: [dispersion, exact-solution]  # 現象・概念。src/lib/taxonomy.ts の TAGS のキー（下の「分類の語彙」）
 preprint:               # 任意。査読前の preprint に基づくページだけ書く

@@ -122,6 +122,12 @@ h2 {
   color: var(--text-muted);
 }
 
+/* 公開日 */
+.published {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 /* preprint の印 */
 .badge {
   display: inline-block;

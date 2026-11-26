@@ -2,7 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import katex from "katex";
 import Simulation from "../components/Simulation";
-import { arxivUrl } from "../lib/frontmatter";
+import { arxivUrl, formatDate } from "../lib/frontmatter";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const { entry } = Astro.props;
-const { title, summary, equation, verification, preprint } = entry.data;
+const { title, summary, equation, verification, preprint, published } = entry.data;
 const hasSim = `../content/phenomena/${entry.id}/sim.ts` in import.meta.glob("../content/phenomena/*/sim.ts");
 const equationHtml = katex.renderToString(equation, { displayMode: true, throwOnError: true });
 
@@ -28,6 +28,9 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
 <BaseLayout title={title} description={summary}>
   <article>
     <h1>{title}</h1>
+    <p class="published">
+      <time datetime={published}>{formatDate(published)}</time> 公開
+    </p>
     {
       preprint && (
         <p class="notice">

@@ -16,8 +16,17 @@ export const phenomenonSchema = z.object({
   summary: z.string(),
   /** 方程式（KaTeX の display 数式。$$ は付けない） */
   equation: z.string(),
-  /** 一覧での並び順（小さい順） */
-  order: z.number().int(),
+  /**
+   * 公開日（YYYY-MM-DD）。PR を出す日（日本時間）を書く。CI が通ると自動でマージ・公開されるので、その日になる。
+   * 一覧はこの新しい順に並ぶ。YAML の書き方によって文字列でも Date でも読まれるので、どちらも YYYY-MM-DD の文字列にそろえる。
+   */
+  published: z.preprocess(
+    (v) => (v instanceof Date && !Number.isNaN(v.getTime()) ? v.toISOString().slice(0, 10) : v),
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "公開日は YYYY-MM-DD（例 2026-11-23）")
+      .refine(isCalendarDate, "存在しない日付"),
+  ),
   /** 扱う方程式（src/lib/taxonomy.ts の EQUATIONS のキー）。1 つ以上、重複なし */
   equations: z
     .array(z.enum(EQUATION_IDS))
@@ -51,6 +60,24 @@ export const phenomenonSchema = z.object({
 });
 
 export type PhenomenonFrontmatter = z.infer<typeof phenomenonSchema>;
+
+/** YYYY-MM-DD が暦の上にある日か（2026-02-30 などを弾く） */
+function isCalendarDate(s: string): boolean {
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/** 一覧の並び順。公開日の新しい順で、同じ日は slug の順 */
+export function newestFirst(a: { id: string; data: { published: string } }, b: { id: string; data: { published: string } }): number {
+  if (a.data.published !== b.data.published) return a.data.published < b.data.published ? 1 : -1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/** 公開日（YYYY-MM-DD）をサイトに出す形（2026年11月23日）にする */
+export function formatDate(published: string): string {
+  const [y, m, d] = published.split("-").map(Number);
+  return `${y}年${m}月${d}日`;
+}
 
 /** preprint の arXiv のページ（版つき）の URL */
 export function arxivUrl(preprint: { arxiv: string; version: number }): string {
