@@ -94,6 +94,15 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 - データの保持期間: 2026-11-26 に（ユーザーの承認済み）、GA の管理画面（プロパティ `dispersive-lab` → データの収集と修正 → データの保持）でイベントデータを 2 か月（既定）から 14 か月に延ばした。ユーザーデータは既定の 14 か月、「新しいユーザー アクティビティのたびにリセット」はオンのまま。
   - 保持期間が効くのは探索レポートとユーザー単位のデータだけで、標準のレポートには影響しない。あとから延ばしても過去のデータは戻らないので、クエリに入るシミュレーションのパラメータを探索レポートで 1 年分見比べられるよう、早めに延ばした。
 
+## 検索（Google Search Console）
+
+2026-11-26 に導入した（ユーザーの承認済み）。どの現象や方程式の名前で検索されて読者が来ているかを、題材選びに活かすため。
+
+- プロパティは URL プレフィックスの `https://dispersive-lab.web.app/`。
+- 所有権は HTML ファイルで確認している: `public/google68763e476baafb50.html`（本番の `/google68763e476baafb50.html`）。**このファイルを消すと確認が外れるので消さない。** Search Console はリダイレクトを嫌うので、`.html` 付きの URL がリダイレクトなしで 200 を返す必要がある。GA タグでの確認は、gtag を本番のホストだけで動的に読み込む形（上の「アクセス解析」）で標準のスニペットではないため使っていない。
+- サイトマップは `@astrojs/sitemap`（`astro.config.mjs` の `integrations`）がビルド時に `dist/sitemap-index.xml` と `dist/sitemap-0.xml` を生成する。全ページが入るので、ページを足しても手作業は要らない。Search Console には `https://dispersive-lab.web.app/sitemap-index.xml` を送信済み。
+- `public/robots.txt` は全許可で、サイトマップの場所を書いている。
+
 ## 読者が文章で実験を頼む機能（凍結中）
 
 2026-11-23 に PR #9・#10 で入れ、同日に PR #14 でサイトから外した（コードは削除）。戻すときは、PR #14 を revert し、Firebase AI Logic の API（`firebasevertexai.googleapis.com`）を有効にし、新しいブラウザ用 API キーを作って（使える API を App Check と AI Logic に、リファラーを本番と localhost に制限）`src/lib/firebaseConfig.ts` の `apiKey` を差し替える（旧キーは漏えいの検出を受けて 2026-11-23 に削除した。App Check・reCAPTCHA キー・サーバー側テンプレート `experiment-request`・テンプレート専用モード・クォータは残してある）。費用の上限（CLAUDE.md の月 $10 以内）は、戻す PR で 1 日の回数上限を決めて計算し直す。
