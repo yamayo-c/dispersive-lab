@@ -21,6 +21,28 @@ const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
+    <!--
+      Google アナリティクス（GA4）。本番のホストで開いたときだけ gtag.js を読み込む。
+      プレビューチャンネル（dispersive-lab--pr-…web.app）も本番ビルドなので、ビルド時ではなく実行時にホスト名で判定する。
+      扱いは /privacy/ と docs/deploy.md の「アクセス解析（Google Analytics）」。
+    -->
+    <script is:inline>
+      (() => {
+        const GA_MEASUREMENT_ID = "G-LLWNTH01RM";
+        const PRODUCTION_HOSTS = ["dispersive-lab.web.app", "dispersive-lab.firebaseapp.com"];
+        if (!PRODUCTION_HOSTS.includes(location.hostname)) return;
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () {
+          window.dataLayer.push(arguments);
+        };
+        window.gtag("js", new Date());
+        window.gtag("config", GA_MEASUREMENT_ID);
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+        document.head.appendChild(script);
+      })();
+    </script>
   </head>
   <body>
     <header class="site-header">
@@ -33,6 +55,7 @@ const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
       <div class="container">
         ソースコードと数値検証は
         <a href="https://github.com/yamayo-c/dispersive-lab">GitHub</a> にあります。
+        <a class="footer-link" href="/privacy/">プライバシー</a>
       </div>
     </footer>
   </body>

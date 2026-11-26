@@ -82,6 +82,16 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
   --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0
 ```
 
+## アクセス解析（Google Analytics）
+
+2026-11-26 に導入した（ユーザーの承認済み）。
+
+- Firebase プロジェクトと連携した GA4 プロパティ `dispersive-lab`（プロパティ ID 565929643）。GA アカウントは新しく作った `dispersive-lab`（ID 417471914）。地域は日本、データ共有の任意項目はすべてオフ。
+- データストリームは Web アプリ `1:282451486766:web:1461d29176cbc4b53c17bf` のもの（ストリーム ID 16420903686、測定 ID `G-LLWNTH01RM`）。
+- タグは Firebase JS SDK を使わず、gtag.js を `src/layouts/BaseLayout.astro` に直接埋め込んでいる。送るのは本番のホスト（`dispersive-lab.web.app`・`dispersive-lab.firebaseapp.com`）で開いたときだけで、localhost とプレビューチャンネル（`dispersive-lab--pr-…web.app`）では gtag.js を読み込まない（プレビューも本番ビルドなので、実行時に `location.hostname` で判定する）。
+- シミュレーションのパラメータは URL のクエリに入るので、`page_view` の `page_location` にもクエリが入る（想定どおり）。
+- GA の規約で Cookie による計測をサイト上で知らせる必要があるので、プライバシーのページ `src/pages/privacy.astro`（`/privacy/`）を置き、全ページのフッターからリンクしている。
+
 ## 読者が文章で実験を頼む機能（凍結中）
 
 2026-11-23 に PR #9・#10 で入れ、同日に PR #14 でサイトから外した（コードは削除）。戻すときは、PR #14 を revert し、Firebase AI Logic の API（`firebasevertexai.googleapis.com`）を有効にし、新しいブラウザ用 API キーを作って（使える API を App Check と AI Logic に、リファラーを本番と localhost に制限）`src/lib/firebaseConfig.ts` の `apiKey` を差し替える（旧キーは漏えいの検出を受けて 2026-11-23 に削除した。App Check・reCAPTCHA キー・サーバー側テンプレート `experiment-request`・テンプレート専用モード・クォータは残してある）。費用の上限（CLAUDE.md の月 $10 以内）は、戻す PR で 1 日の回数上限を決めて計算し直す。
