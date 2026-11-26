@@ -15,6 +15,7 @@ interface Meta {
   dt: number;
   n: number;
   yRange: readonly [number, number];
+  xRange?: readonly [number, number];
   hasExact: boolean;
   real: boolean;
 }
@@ -78,6 +79,7 @@ export default function Simulation({ slug }: Props) {
           dt: msg.dt,
           n: msg.n,
           yRange: msg.yRange,
+          xRange: msg.xRange,
           hasExact: msg.hasExact,
           real: msg.real,
         });
@@ -200,6 +202,7 @@ export default function Simulation({ slug }: Props) {
           curves={curves}
           markers={frame.markers}
           yRange={meta.yRange}
+          xRange={meta.xRange}
           ariaLabel={`時刻 t = ${frame.t.toFixed(3)} の解`}
         />
       </div>

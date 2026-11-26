@@ -21,6 +21,8 @@ interface Props {
   /** 縦線で重ねる印（任意） */
   markers?: readonly PlotMarker[];
   yRange: readonly [number, number];
+  /** 横軸の表示範囲（省略時は区間全体） */
+  xRange?: readonly [number, number];
   /** アクセシビリティ用の説明 */
   ariaLabel: string;
 }
@@ -54,7 +56,7 @@ function resolveColor(el: Element, color: string): string {
 }
 
 /** 1 次元の場を描く canvas（周期区間なので右端の点 x = xMin + L は描かない） */
-export default function FieldPlot({ x, curves, markers, yRange, ariaLabel }: Props) {
+export default function FieldPlot({ x, curves, markers, yRange, xRange, ariaLabel }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
 
@@ -75,8 +77,8 @@ export default function FieldPlot({ x, curves, markers, yRange, ariaLabel }: Pro
 
     const n = x.length;
     if (n < 2) return;
-    const x0 = x[0]!;
-    const x1 = x[n - 1]! + (x[1]! - x[0]!);
+    const x0 = xRange ? xRange[0] : x[0]!;
+    const x1 = xRange ? xRange[1] : x[n - 1]! + (x[1]! - x[0]!);
     const [y0, y1] = yRange;
     const pw = w - MARGIN.left - MARGIN.right;
     const ph = h - MARGIN.top - MARGIN.bottom;

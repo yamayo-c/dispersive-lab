@@ -78,7 +78,7 @@ function makeFrame(s: State): Frame {
     exactRe: exact?.re,
     exactIm: exact?.im,
     stats,
-    markers: setup.kind === "kdv" ? setup.markers?.(solver.t) : undefined,
+    markers: setup.markers?.(solver.t),
     done: s.stepsDone >= s.stepsTotal,
   };
 }
@@ -124,6 +124,7 @@ self.onmessage = async (ev: MessageEvent<WorkerRequest>) => {
         dt: setup.dt,
         n: setup.grid.n,
         yRange: autoRange(setup),
+        xRange: setup.kind === "schrodinger" ? setup.xRange : undefined,
         hasExact: setup.exact !== undefined,
         real: setup.kind === "kdv",
         frame: makeFrame(state),
