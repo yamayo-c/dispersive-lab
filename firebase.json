@@ -4,6 +4,12 @@
     "ignore": ["firebase.json", "**/.*"],
     "cleanUrls": true,
     "trailingSlash": true,
+    "rewrites": [
+      {
+        "source": "/google68763e476baafb50.html",
+        "destination": "/search-console/google68763e476baafb50.html"
+      }
+    ],
     "headers": [
       {
         "source": "/_astro/**",
