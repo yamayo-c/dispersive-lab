@@ -12,7 +12,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parse as parseYaml } from "yaml";
-import { arxivUrl, phenomenonSchema } from "../src/lib/frontmatter";
+import { arxivUrl, formatDate, newestFirst, phenomenonSchema } from "../src/lib/frontmatter";
 import { defaultParams, totalSteps, type SimDefinition } from "../src/lib/simulation";
 
 const ROOT = join(import.meta.dirname, "..", "src", "content", "phenomena");
@@ -33,7 +33,7 @@ describe("frontmatter のスキーマ", () => {
     title: "t",
     summary: "s",
     equation: "e",
-    order: 1,
+    published: "2026-11-23",
     equations: ["nls"],
     verification: [{ kind: "exact", description: "d" }],
   };
@@ -75,6 +75,21 @@ describe("frontmatter のスキーマ", () => {
     ]) {
       expect(phenomenonSchema.safeParse({ ...base, preprint }).success, JSON.stringify(preprint)).toBe(false);
     }
+  });
+
+  it("published は YYYY-MM-DD の実在する日。文字列でも Date でも同じ文字列になる", () => {
+    expect(phenomenonSchema.parse(base).published).toBe("2026-11-23");
+    expect(phenomenonSchema.parse({ ...base, published: new Date("2026-11-23T00:00:00Z") }).published).toBe("2026-11-23");
+    expect(formatDate("2026-01-05")).toBe("2026年1月5日");
+    for (const published of [undefined, "2026-02-30", "2026-13-01", "2026/11/23", "2026-11-23T10:00", "26-11-23", 20261123]) {
+      expect(phenomenonSchema.safeParse({ ...base, published }).success, String(published)).toBe(false);
+    }
+  });
+
+  it("一覧は公開日の新しい順で、同じ日は slug の順", () => {
+    const e = (id: string, published: string) => ({ id, data: { published } });
+    const sorted = [e("b", "2026-11-23"), e("c", "2026-11-25"), e("a", "2026-11-23"), e("d", "2025-12-31")].sort(newestFirst);
+    expect(sorted.map((x) => x.id)).toEqual(["c", "a", "b", "d"]);
   });
 });
 
