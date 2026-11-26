@@ -89,6 +89,10 @@ a {
   font-size: 0.875rem;
 }
 
+.site-footer .footer-link {
+  margin-left: 1em;
+}
+
 main {
   padding-top: 24px;
 }
