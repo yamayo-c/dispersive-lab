@@ -91,6 +91,8 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 - タグは Firebase JS SDK を使わず、gtag.js を `src/layouts/BaseLayout.astro` に直接埋め込んでいる。送るのは本番のホスト（`dispersive-lab.web.app`・`dispersive-lab.firebaseapp.com`）で開いたときだけで、localhost とプレビューチャンネル（`dispersive-lab--pr-…web.app`）では gtag.js を読み込まない（プレビューも本番ビルドなので、実行時に `location.hostname` で判定する）。
 - シミュレーションのパラメータは URL のクエリに入るので、`page_view` の `page_location` にもクエリが入る（想定どおり）。
 - GA の規約で Cookie による計測をサイト上で知らせる必要があるので、プライバシーのページ `src/pages/privacy.astro`（`/privacy/`）を置き、全ページのフッターからリンクしている。
+- データの保持期間: 2026-11-26 に（ユーザーの承認済み）、GA の管理画面（プロパティ `dispersive-lab` → データの収集と修正 → データの保持）でイベントデータを 2 か月（既定）から 14 か月に延ばした。ユーザーデータは既定の 14 か月、「新しいユーザー アクティビティのたびにリセット」はオンのまま。
+  - 保持期間が効くのは探索レポートとユーザー単位のデータだけで、標準のレポートには影響しない。あとから延ばしても過去のデータは戻らないので、クエリに入るシミュレーションのパラメータを探索レポートで 1 年分見比べられるよう、早めに延ばした。
 
 ## 読者が文章で実験を頼む機能（凍結中）
 
