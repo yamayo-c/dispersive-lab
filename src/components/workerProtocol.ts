@@ -20,6 +20,8 @@ export type WorkerResponse =
       dt: number;
       n: number;
       yRange: readonly [number, number];
+      /** 横軸の表示範囲（省略時は区間全体） */
+      xRange?: readonly [number, number];
       hasExact: boolean;
       /** 実数値の方程式（KdV など）なら true。u そのものを描き、Re/Im/|u| の切り替えを出さない */
       real: boolean;

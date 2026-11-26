@@ -170,3 +170,81 @@ export function kdvTwoSoliton(k1: number, k2: number, x: number, t: number, eta1
   }
   return (2 * num) / (tau * tau);
 }
+
+/** 2 ソリトン解の 1 つ分のパラメータ（i u_t + u_xx + 2|u|²u = 0 の規約） */
+export interface NlsSolitonParams {
+  /** 振幅 a（> 0） */
+  amplitude: number;
+  /** 速度 v */
+  velocity: number;
+  /** もう一方のソリトンが遠くにあるときの、t = 0 での中心 x₀ */
+  center: number;
+  /** 位相 φ */
+  phase: number;
+}
+
+/**
+ * focusing NLS  i u_t + u_xx + 2|u|²u = 0（α = 1, κ = 2）の 2 ソリトン解（広田の形）。
+ *
+ *     k_j = a_j + i v_j/2,   θ_j = k_j x + i k_j² t + θ_j⁰,   θ_j⁰ = −k_j x_j + log(2a_j) + iφ_j,   E_j = e^{θ_j},
+ *     u = g / f,
+ *     f = 1 + Σ_{i,j} E_i Ē_j / (k_i + k̄_j)² + |k₁ − k₂|⁴ |E₁|²|E₂|² / ((k₁+k̄₁)² (k₂+k̄₂)² |k₁+k̄₂|⁴),
+ *     g = E₁ + E₂ + (k₁ − k₂)² [ E₁E₂Ē₁ / ((k₁+k̄₁)²(k₂+k̄₁)²) + E₁E₂Ē₂ / ((k₁+k̄₂)²(k₂+k̄₂)²) ].
+ *
+ * E₂ = 0 とすると f = 1 + |E₁|²/(4a₁²)、u = a₁ sech(a₁(x − x₁ − v₁t)) e^{i(v₁(x − x₁)/2 + (a₁² − v₁²/4)t + φ₁)} で、
+ * 1 ソリトン（nlsSoliton, α = 1, κ = 2）と一致する。
+ * 各項の大きさは e^{2 Re θ} 程度まで増えるので、f と g を e^{2M}（M = max(0, Re θ₁, Re θ₂, Re θ₁ + Re θ₂)）で割って計算する。
+ */
+export function nlsTwoSoliton(s1: NlsSolitonParams, s2: NlsSolitonParams, x: number, t: number): [number, number] {
+  const k1: Complex = [s1.amplitude, s1.velocity / 2];
+  const k2: Complex = [s2.amplitude, s2.velocity / 2];
+  const conj = (z: Complex): Complex => [z[0], -z[1]];
+  const add = (a: Complex, b: Complex): [number, number] => [a[0] + b[0], a[1] + b[1]];
+  const sub = (a: Complex, b: Complex): [number, number] => [a[0] - b[0], a[1] - b[1]];
+  const sq = (z: Complex) => cmul(z, z);
+  const abs2 = (z: Complex) => z[0] * z[0] + z[1] * z[1];
+  // θ_j = k_j (x − x_j) + i k_j² t + log(2a_j) + iφ_j
+  const theta = (k: Complex, s: NlsSolitonParams): [number, number] => {
+    const ik2t = cmul([0, t], sq(k));
+    return [k[0] * (x - s.center) + ik2t[0] + Math.log(2 * s.amplitude), k[1] * (x - s.center) + ik2t[1] + s.phase];
+  };
+  const th1 = theta(k1, s1);
+  const th2 = theta(k2, s2);
+  const m = Math.max(0, th1[0], th2[0], th1[0] + th2[0]);
+  // e^{z − shift} を複素数で
+  const ex = (z: Complex, shift: number) => cexp([z[0] - shift, z[1]]);
+  // 各項を e^{2m} で割ったもの。E_i Ē_j = e^{θ_i + θ̄_j}
+  const pair = (a: Complex, b: Complex) => ex(add(a, conj(b)), 2 * m);
+  const k11 = add(k1, conj(k1)); // 2a₁
+  const k22 = add(k2, conj(k2)); // 2a₂
+  const k12 = add(k1, conj(k2));
+  const k21 = add(k2, conj(k1));
+  const d = sub(k1, k2);
+  // f / e^{2m}（実数）
+  let f = Math.exp(-2 * m);
+  f += cdiv(pair(th1, th1), sq(k11))[0];
+  f += cdiv(pair(th2, th2), sq(k22))[0];
+  f += 2 * cdiv(pair(th1, th2), sq(k12))[0];
+  f += (abs2(d) ** 2 * Math.exp(2 * th1[0] + 2 * th2[0] - 2 * m)) / (abs2(k11) * abs2(k22) * abs2(k12) ** 2);
+  // g / e^{2m}
+  let g = add(ex(th1, 2 * m), ex(th2, 2 * m));
+  const d2 = sq(d);
+  const e12 = add(th1, th2);
+  const t1 = cdiv(ex(add(e12, conj(th1)), 2 * m), cmul(sq(k11), sq(k21)));
+  const t2 = cdiv(ex(add(e12, conj(th2)), 2 * m), cmul(sq(k12), sq(k22)));
+  g = add(g, cmul(d2, add(t1, t2)));
+  return [g[0] / f, g[1] / f];
+}
+
+/**
+ * NLS の 2 ソリトン衝突による位置のずれ（v₁ > v₂、Δ = (v₁ − v₂)/2）:
+ *
+ *     δx₁ = (1/a₁) log( (Δ² + (a₁+a₂)²) / (Δ² + (a₁−a₂)²) ),   δx₂ = −(a₁/a₂) δx₁.
+ *
+ * 速いソリトン 1 は前へ、遅いソリトン 2 は後ろへずれる（a₁δx₁ + a₂δx₂ = 0）。
+ */
+export function nlsTwoSolitonShifts(a1: number, a2: number, v1: number, v2: number): { fast: number; slow: number } {
+  const delta = (v1 - v2) / 2;
+  const r = Math.log((delta ** 2 + (a1 + a2) ** 2) / (delta ** 2 + (a1 - a2) ** 2));
+  return { fast: r / a1, slow: -r / a2 };
+}

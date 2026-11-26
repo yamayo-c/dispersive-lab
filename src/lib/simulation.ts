@@ -47,8 +47,12 @@ export interface SchrodingerSetup {
   initial: (x: number) => readonly [number, number];
   /** 厳密解がある場合 u(x, t) = [Re, Im]。描画に重ね、誤差を表示する */
   exact?: (x: number, t: number) => readonly [number, number];
+  /** 時刻 t でグラフに重ねる縦線の印（任意） */
+  markers?: (t: number) => readonly Marker[];
   /** 縦軸の表示範囲（省略時は初期値の最大値から決める） */
   yRange?: readonly [number, number];
+  /** 横軸の表示範囲（省略時は区間全体）。計算は区間全体で行い、表示だけを絞る */
+  xRange?: readonly [number, number];
 }
 
 /** グラフに縦線で重ねる印（理論上の位置など） */
