@@ -40,7 +40,7 @@
 - `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。事前計算だけのページは `sim.ts` の代わりに `precompute.ts`。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
 - `src/layouts/BaseLayout.astro` — 全ページ共通の枠（ヘッダー・フッター、本番のホストだけで読み込む Google アナリティクスのタグ。[docs/deploy.md](docs/deploy.md) の「アクセス解析（Google Analytics）」）。`src/pages/privacy.astro` がプライバシーのページ（`/privacy/`）。
-- `public/` — そのまま配信するファイル。Google Search Console の所有権確認ファイル（`google68763e476baafb50.html`。消さない）と `robots.txt` を含む。サイトマップは `@astrojs/sitemap` がビルド時に生成する（[docs/deploy.md](docs/deploy.md) の「検索（Google Search Console）」）。
+- `public/` — そのまま配信するファイル。Google Search Console の所有権確認ファイル（`search-console/google68763e476baafb50.html`。`firebase.json` の rewrite で `/google68763e476baafb50.html` に出す。消さない）と `robots.txt` を含む。サイトマップは `@astrojs/sitemap` がビルド時に生成する（[docs/deploy.md](docs/deploy.md) の「検索（Google Search Console）」）。
 - `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。
 
 ## コマンド

@@ -99,7 +99,9 @@ gcloud billing budgets create --billing-project=$P --billing-account=<請求先�
 2026-11-26 に導入した（ユーザーの承認済み）。どの現象や方程式の名前で検索されて読者が来ているかを、題材選びに活かすため。
 
 - プロパティは URL プレフィックスの `https://dispersive-lab.web.app/`。
-- 所有権は HTML ファイルで確認している: `public/google68763e476baafb50.html`（本番の `/google68763e476baafb50.html`）。**このファイルを消すと確認が外れるので消さない。** Search Console はリダイレクトを嫌うので、`.html` 付きの URL がリダイレクトなしで 200 を返す必要がある。GA タグでの確認は、gtag を本番のホストだけで動的に読み込む形（上の「アクセス解析」）で標準のスニペットではないため使っていない。
+- 所有権は HTML ファイルで確認している（本番の `/google68763e476baafb50.html`）。**このファイルと下の rewrite を消すと確認が外れるので消さない。** GA タグでの確認は、gtag を本番のホストだけで動的に読み込む形（上の「アクセス解析」）で標準のスニペットではないため使っていない。
+  - Search Console はリダイレクトを嫌うので、`.html` 付きの URL がリダイレクトなしで 200 を返す必要がある。ところが `firebase.json` の `cleanUrls: true`・`trailingSlash: true` のもとでは、`public/` 直下に置いた `google68763e476baafb50.html` は `/google68763e476baafb50/` へ 301 される（2026-11-26 にプレビューチャンネルで確認）。
+  - そのためファイルの実体は `public/search-console/google68763e476baafb50.html` に置き、`firebase.json` の `rewrites` で `/google68763e476baafb50.html` をそこへ当てている（同じ名前のファイルが直下に無いので cleanUrls のリダイレクトがかからず、rewrite で 200 になる）。
 - サイトマップは `@astrojs/sitemap`（`astro.config.mjs` の `integrations`）がビルド時に `dist/sitemap-index.xml` と `dist/sitemap-0.xml` を生成する。全ページが入るので、ページを足しても手作業は要らない。Search Console には `https://dispersive-lab.web.app/sitemap-index.xml` を送信済み。
 - `public/robots.txt` は全許可で、サイトマップの場所を書いている。
 
