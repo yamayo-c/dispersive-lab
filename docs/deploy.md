@@ -55,6 +55,18 @@ rm -f "$KEY"
 
 鍵ファイルを持たない方法として、Workload Identity 連携（`google-github-actions/auth`）もある。設定は増えるが、漏れて困る鍵が残らない。
 
+## キャッシュ（Cache-Control）
+
+`firebase.json` の `headers` で決めている（2026-11-27）。既定のままだと HTML にも `max-age=3600` が付き、デプロイのあと最大 1 時間は古い HTML が出る。古い HTML はデプロイで消えた古い `/_astro/` の JS を読みに行くので、シミュレーションが動かなくなるおそれがある。
+
+| 対象 | Cache-Control | 理由 |
+| --- | --- | --- |
+| 既定（HTML、拡張子なしのページ、`sitemap*.xml`、`robots.txt`、`/precomputed/**`、`favicon.svg` など） | `no-cache` | 毎回 ETag で新しい版か確かめる（変わっていなければ 304 で中身は送らない） |
+| `/_astro/**` | `public, max-age=31536000, immutable` | ファイル名に中身のハッシュが入る |
+| `/spacetime/**`（時空図の PNG） | `public, max-age=31536000, immutable` | URL に中身から作った版の印 `?v=` を付けている（`src/viz/thumbnails.ts` の `thumbnailUrl`・`heroUrl`）。印のない URL を書かないことを `src/viz/urls.test.ts` が確かめる |
+
+`headers` は先に `**` で既定を決め、あとの規則で上書きしている。規則を足したら、プレビューで `curl -sI <URL>` を実行して `Cache-Control` を確かめる。
+
 ## 事前計算（Cloud Run Jobs）
 
 2026-11-23 に導入した（ユーザーの承認済み）。プロジェクトは Blaze プランで、請求先アカウントは Google Developer Program のクレジットが入るもの。使い方は [adding-a-phenomenon.md](adding-a-phenomenon.md) の「ブラウザで間に合わない計算」。

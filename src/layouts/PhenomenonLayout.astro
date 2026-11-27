@@ -1,8 +1,11 @@
 ---
-import type { CollectionEntry } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import katex from "katex";
 import Simulation from "../components/Simulation";
 import { arxivUrl, formatDate } from "../lib/frontmatter";
+import { EQUATIONS, TAGS } from "../lib/taxonomy";
+import { filterHref, related } from "../site/filter";
+import { thumbnailUrl } from "../viz/thumbnails";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -10,7 +13,7 @@ interface Props {
 }
 
 const { entry } = Astro.props;
-const { title, summary, equation, verification, preprint, published } = entry.data;
+const { title, summary, equation, verification, preprint, published, equations, tags } = entry.data;
 const hasSim = `../content/phenomena/${entry.id}/sim.ts` in import.meta.glob("../content/phenomena/*/sim.ts");
 const equationHtml = katex.renderToString(equation, { displayMode: true, throwOnError: true });
 
@@ -20,48 +23,93 @@ const KIND_LABEL = {
   exact: "厳密解",
 } as const;
 
+// 同じ方程式・同じタグのページ（src/site/filter.ts の related）
+const all = await getCollection("phenomena");
+const relatedPages = await Promise.all(related(all, entry, 3).map(async ({ entry: e }) => ({
+  e,
+  thumb: await thumbnailUrl(e.id),
+  sharedEq: e.data.equations.filter((q) => equations.includes(q)).map((q) => EQUATIONS[q].label),
+  sharedTags: e.data.tags.filter((t) => tags.includes(t)).map((t) => TAGS[t].label),
+})));
+
 const repo = "https://github.com/yamayo-c/dispersive-lab/blob/main";
 const testUrl = `${repo}/src/content/phenomena/${entry.id}/verify.test.ts`;
 const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
 ---
 
 <BaseLayout title={title} description={summary}>
-  <article>
-    <h1>{title}</h1>
-    <p class="published">
-      <time datetime={published}>{formatDate(published)}</time> 公開
-    </p>
-    {
-      preprint && (
-        <p class="notice">
-          <span class="badge">preprint</span>
-          査読前の preprint（<a href={arxivUrl(preprint)}>arXiv:{preprint.arxiv}v{preprint.version}</a>）に基づくページです。今後の版で結果が変わったり、取り下げられたりすることがあります。
-        </p>
-      )
-    }
-    <p class="lead">{summary}</p>
-    <div set:html={equationHtml} />
+  <article class="container">
+    <header class="ph-head">
+      <div class="ph-meta">
+        <ul class="ph-terms" aria-label="方程式とタグ（押すと、同じ方程式・タグのページの一覧へ）">
+          {equations.map((q) => <li><a href={filterHref({ eq: [q], tag: [] })}>{EQUATIONS[q].label}</a></li>)}
+          {tags.map((t) => <li><a href={filterHref({ eq: [], tag: [t] })}>#{TAGS[t].label}</a></li>)}
+        </ul>
+        <time datetime={published}>{formatDate(published)} 公開</time>
+      </div>
+      <h1>{title}</h1>
+      {
+        preprint && (
+          <p class="notice">
+            <span class="badge">preprint</span>
+            査読前の preprint（<a href={arxivUrl(preprint)}>arXiv:{preprint.arxiv}v{preprint.version}</a>）に基づくページです。今後の版で結果が変わったり、取り下げられたりすることがあります。
+          </p>
+        )
+      }
+      <p class="ph-summary">{summary}</p>
+      <div class="ph-equation" set:html={equationHtml} />
+    </header>
 
     {hasSim && <Simulation slug={entry.id} client:only="react" />}
 
-    <slot />
+    <div class="ph-body">
+      <div class="prose">
+        <slot />
+      </div>
+    </div>
 
-    <section class="verification" aria-labelledby="verification-heading">
-      <h2 id="verification-heading">この計算の検証</h2>
-      <ul>
+    <section class="record" aria-labelledby="record-heading">
+      <h2 id="record-heading">この計算の検証</h2>
+      <p class="record-intro">
+        このページと同じ solver を Node で動かすテスト（<a href={testUrl}>verify.test.ts</a>）として、変更のたびに CI で確かめている。{
+          hasSim && (
+            <>
+              初期値とパラメータの定義は <a href={simUrl}>sim.ts</a>。
+            </>
+          )
+        }
+      </p>
+      <ol>
         {
           verification.map((v) => (
             <li>
-              <span class="kind">{KIND_LABEL[v.kind]}</span>
-              {v.description}
+              <span><span class="check">{KIND_LABEL[v.kind]}</span></span>
+              <span>{v.description}</span>
             </li>
           ))
         }
-      </ul>
-      <p>
-        上の検証は、このページと同じ solver を Node で動かすテスト（<a href={testUrl}>verify.test.ts</a>）として、変更のたびに
-        CI で実行しています。{hasSim && <>初期値とパラメータの定義は <a href={simUrl}>sim.ts</a> にあります。</>}
-      </p>
+      </ol>
     </section>
+
+    {
+      relatedPages.length > 0 && (
+        <nav class="related" aria-labelledby="related-heading">
+          <h2 id="related-heading">同じ方程式・同じタグのページ</h2>
+          <ul>
+            {relatedPages.map(({ e, thumb, sharedEq, sharedTags }) => (
+              <li>
+                <a href={`/phenomena/${e.id}/`}>
+                  {thumb ? <img src={thumb} width="96" height="72" loading="lazy" alt="" /> : <span />}
+                  <span>
+                    <span class="title">{e.data.title}</span>
+                    <span class="why">{[...sharedEq, ...sharedTags.map((t) => `#${t}`)].join("、")}</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
   </article>
 </BaseLayout>

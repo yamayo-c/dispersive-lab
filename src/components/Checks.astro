@@ -1,0 +1,33 @@
+---
+/**
+ * そのページで確かめた検証の種類と件数（index.mdx の verification の kind を数える）。一覧の各現象に出す。
+ * 付いている種類だけを、いつも同じ順（保存量・収束・厳密解）に文字で出す。
+ */
+type Kind = "conservation" | "convergence" | "exact";
+
+interface Props {
+  kinds: readonly Kind[];
+}
+
+const KIND_LABEL: Record<Kind, string> = {
+  conservation: "保存量",
+  convergence: "収束",
+  exact: "厳密解",
+};
+
+const ORDER: Kind[] = ["conservation", "convergence", "exact"];
+const { kinds } = Astro.props;
+const counts = ORDER.map((k) => ({ k, n: kinds.filter((v) => v === k).length })).filter((c) => c.n > 0);
+const label = `検証: ${counts.map((c) => `${KIND_LABEL[c.k]} ${c.n} 件`).join("、")}`;
+---
+
+<ul class="checks" aria-label={label}>
+  {
+    counts.map((c) => (
+      <li class="check" aria-hidden="true">
+        {KIND_LABEL[c.k]}
+        {c.n > 1 && <span class="check-n">{c.n}</span>}
+      </li>
+    ))
+  }
+</ul>
