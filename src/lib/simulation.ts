@@ -81,6 +81,8 @@ export interface KdvSetup {
   markers?: (t: number) => readonly Marker[];
   /** 縦軸の表示範囲（省略時は初期値の最大値から決める） */
   yRange?: readonly [number, number];
+  /** 非線形項に 2/3 則のエイリアス除去を入れる（省略時は入れない）。src/solvers/kdv.ts の KdvOptions */
+  dealias?: boolean;
 }
 
 /** 方程式の種類が増えたらここに union で足す */
@@ -154,7 +156,7 @@ export function createSolver(setup: KdvSetup): KdvSolver;
 export function createSolver(setup: SimSetup): SchrodingerSplitStep | KdvSolver;
 export function createSolver(setup: SimSetup): SchrodingerSplitStep | KdvSolver {
   if (setup.kind === "kdv") {
-    const solver = new KdvSolver(setup.grid, setup.dt);
+    const solver = new KdvSolver(setup.grid, setup.dt, { dealias: setup.dealias });
     solver.setState(sampleReal(setup.grid, setup.initial), startTime(setup));
     return solver;
   }

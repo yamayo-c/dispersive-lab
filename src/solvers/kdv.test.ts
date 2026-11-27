@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { kdvEnergy, kdvIntegral, kdvL2, relativeDrift } from "../lib/conserved";
 import { kdvSoliton, kdvTwoSoliton } from "../lib/exact";
 import { gridPoints, gridSpacing, makeGrid, type Grid1D } from "./grid";
+import { FFT } from "./fft";
 import { KdvSolver } from "./kdv";
 
 function l2(grid: Grid1D, u: Float64Array): number {
@@ -15,9 +16,9 @@ function relErr(grid: Grid1D, u: Float64Array, v: Float64Array): number {
 }
 
 /** f(x, t0) から tEnd まで dt で計算した解と、f(x, tEnd) との相対 L² 誤差 */
-function solveAndCompare(grid: Grid1D, f: (x: number, t: number) => number, t0: number, tEnd: number, dt: number) {
+function solveAndCompare(grid: Grid1D, f: (x: number, t: number) => number, t0: number, tEnd: number, dt: number, dealias = false) {
   const x = gridPoints(grid);
-  const solver = new KdvSolver(grid, dt);
+  const solver = new KdvSolver(grid, dt, { dealias });
   solver.setState(x.map((xi) => f(xi, t0)), t0);
   const steps = Math.round((tEnd - t0) / dt);
   expect(Math.abs(steps * dt - (tEnd - t0))).toBeLessThan(1e-9);
@@ -82,6 +83,72 @@ describe("KdV の擬スペクトル法 + 積分因子 RK4", () => {
     for (let i = 0; i < 30; i++) b.step(1);
     expect(relErr(grid, a.values(), b.values())).toBeLessThan(1e-14);
     expect(a.t).toBeCloseTo(b.t, 12);
+  });
+});
+
+describe("KdV の 2/3 則のエイリアス除去（dealias: true）", () => {
+  it("[厳密解] エイリアス除去ありでも 1 ソリトン・2 ソリトンと一致する", () => {
+    const grid = makeGrid(512, 80);
+    for (const k of [1, 1.5]) {
+      const { err } = solveAndCompare(grid, (x, t) => kdvSoliton(k, -10, x, t), 0, 8, 0.005, true);
+      console.info(`KdV（エイリアス除去あり）1 ソリトン k = ${k}: 相対 L² 誤差 = ${err.toExponential(3)}`);
+      expect(err).toBeLessThan(1e-5);
+    }
+    const { err } = solveAndCompare(grid, (x, t) => kdvTwoSoliton(1.5, 1, x, t), -4, 4, 0.005, true);
+    console.info(`KdV（エイリアス除去あり）2 ソリトン: 相対 L² 誤差 = ${err.toExponential(3)}`);
+    expect(err).toBeLessThan(1e-5);
+  });
+
+  it("[収束] エイリアス除去ありでも、時間刻みを半分にすると誤差がおよそ 1/16 になる（4 次精度）", () => {
+    const grid = makeGrid(512, 80);
+    const f = (x: number, t: number) => kdvTwoSoliton(1.5, 1, x, t);
+    const errors = [0.01, 0.005, 0.0025].map((dt) => solveAndCompare(grid, f, -4, 4, dt, true).err);
+    const ratios = errors.slice(1).map((e, i) => errors[i]! / e);
+    console.info(`KdV（エイリアス除去あり）2 ソリトン: 誤差 ${errors.map((e) => e.toExponential(3)).join(" → ")}, 比 ${ratios.map((r) => r.toFixed(2)).join(", ")}`);
+    for (const r of ratios) {
+      expect(r).toBeGreaterThan(14);
+      expect(r).toBeLessThan(32);
+    }
+  });
+
+  it("残す波数 |m| ≤ n/3 の外の成分は、初期値で 0 なら時間発展しても 0 のまま（非線形項がそこへ流れ込まない）", () => {
+    const n = 256;
+    const grid = makeGrid(n, 40);
+    const x = gridPoints(grid);
+    const solver = new KdvSolver(grid, 0.01, { dealias: true });
+    // 低い波数だけの初期値: cos と cos 2 の重ね合わせ
+    solver.setState(x.map((xi) => 0.3 * Math.cos((2 * Math.PI * xi) / 40) + 0.2 * Math.sin((4 * Math.PI * xi) / 40)));
+    solver.step(2000);
+    const re = solver.values();
+    const im = new Float64Array(n);
+    new FFT(n).forward(re, im);
+    let high = 0;
+    let all = 0;
+    for (let j = 0; j < n; j++) {
+      const m = j < n / 2 ? j : j - n;
+      const a = Math.hypot(re[j]!, im[j]!);
+      all = Math.max(all, a);
+      if (3 * Math.abs(m) > n) high = Math.max(high, a);
+    }
+    console.info(`KdV（エイリアス除去あり）: 落とす波数の成分の最大 / 全体の最大 = ${(high / all).toExponential(2)}`);
+    expect(high / all).toBeLessThan(1e-13);
+  });
+
+  it("[保存量] Zabusky–Kruskal の余弦波（δ = 0.022、N = 512、Δt = 0.01）で、除去ありなら 40 t_B まで発散せず ∫u² と H が保たれる", () => {
+    const delta = 0.022;
+    const L = 2 / delta;
+    const grid = makeGrid(512, L);
+    const x = gridPoints(grid);
+    const solver = new KdvSolver(grid, 0.01, { dealias: true });
+    solver.setState(x.map((xi) => Math.cos((2 * Math.PI * xi) / L) / 6));
+    const u0 = solver.values();
+    solver.step(Math.round((40 / (Math.PI * delta)) / 0.01));
+    const u = solver.values();
+    const d2 = relativeDrift(kdvL2(grid, u), kdvL2(grid, u0));
+    const d3 = relativeDrift(kdvEnergy(grid, u), kdvEnergy(grid, u0));
+    console.info(`KdV（エイリアス除去あり）ZK の余弦波 40 t_B: ∫u² の相対変化 ${d2.toExponential(2)}, H の相対変化 ${d3.toExponential(2)}`);
+    expect(d2).toBeLessThan(1e-5);
+    expect(d3).toBeLessThan(1e-4);
   });
 });
 
