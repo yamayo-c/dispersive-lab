@@ -37,11 +37,13 @@
 
 - `src/solvers/` — FFT と方程式ごとの時間発展（周期境界 1 次元の Strang 分割 split-step Fourier: `i u_t + α u_xx + κ|u|²u = 0`。3 次元球対称の立方 NLS を v = r u の奇関数延長で解く `radial.ts`（基底状態 Q と適応的な時間刻みを含む）、KdV `u_t + 6uu_x + u_xxx = 0` を擬スペクトル法 + 積分因子 RK4 で解く `kdv.ts`）。
 - `src/lib/` — 保存量（`conserved.ts`）、厳密解（`exact.ts`）、ノルム（`norms.ts`）、`sim.ts` の型と共通処理（`simulation.ts`）、`index.mdx` の frontmatter のスキーマ（`frontmatter.ts`。`content.config.ts` とテストが共用）、`equations`・`tags` の語彙（`taxonomy.ts`）、事前計算の型（`precompute.ts`）。
-- `src/components/` — React の可視化部品（`Simulation.tsx` が island、`FieldPlot.tsx` が描画、`sim.worker.ts` が Web Worker での計算）。パラメータは URL のクエリに保存する。
+- `src/components/` — React の可視化部品（`Simulation.tsx` が island でベンチ型の配置（ステージ + 操作のレール）、`FieldPlot.tsx` が線グラフと位相の塗り、`SpacetimeStrip.tsx` が再生中に積み上がる時空図の帯、`sim.worker.ts` が Web Worker での計算、`PhaseDiagram.tsx` が散乱と爆発の相図）と、一覧の検証の印（`Checks.astro`）。パラメータは URL のクエリに保存する。
+- `src/viz/` — 見た目のための計算（solver の結果を並べて色にするだけで、計算の中身には触れない）: カラーマップ（`colormap.ts`。複素数は |u| = 明るさ・arg u = 等輝度の色相環の domain coloring、実数は sequential）、時空図のラスタ（`spacetime.ts`・`runSpacetime.ts`）、一覧のサムネイルとトップの図をビルド時に作る処理（`thumbnails.ts`・`png.ts`。`src/pages/spacetime/` が `/spacetime/<slug>.png` を出す）。事前計算のハッシュ（`scripts/precompute.ts`）は `src/lib`・`src/solvers` を含むので、見た目だけのコードは `src/lib` に置かず、ここに置く（置くと Cloud Run の再計算が走る）。
+- `src/styles/global.css` — 色・書体・型の段階のトークン（`:root`）と全体の組み方。色はデータ（ステージの上）だけが持ち、紙と墨は無彩色に近い。ステージの色は `src/viz/colormap.ts` の `STAGE` と揃える。
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。事前計算だけのページは `sim.ts` の代わりに `precompute.ts`。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
-- `src/layouts/BaseLayout.astro` — 全ページ共通の枠（ヘッダー・フッター、本番のホストだけで読み込む Google アナリティクスのタグ。[docs/deploy.md](docs/deploy.md) の「アクセス解析（Google Analytics）」）。`src/pages/privacy.astro` がプライバシーのページ（`/privacy/`）。
+- `src/layouts/BaseLayout.astro` — 全ページ共通の枠（ヘッダー・フッター、Google Fonts の読み込み（本文の Shippori Mincho B1・UI の Zen Kaku Gothic New）、本番のホストだけで読み込む Google アナリティクスのタグ。[docs/deploy.md](docs/deploy.md) の「アクセス解析（Google Analytics）」）。`src/pages/privacy.astro` がプライバシーのページ（`/privacy/`）。
 - `public/` — そのまま配信するファイル。Google Search Console の所有権確認ファイル（`search-console/google68763e476baafb50.html`。`firebase.json` の rewrite で `/google68763e476baafb50.html` に出す。消さない）と `robots.txt` を含む。サイトマップは `@astrojs/sitemap` がビルド時に生成する（[docs/deploy.md](docs/deploy.md) の「検索（Google Search Console）」）。
-- `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。
+- `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。`src/pages/index.astro` がトップ（nls-two-soliton の時空図を大きく置き、一覧は各現象の時空図のサムネイルを並べる）。
 
 ## コマンド
 

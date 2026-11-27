@@ -1,47 +1,106 @@
 ---
 import { getCollection } from "astro:content";
+import katex from "katex";
+import Checks from "../components/Checks.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { formatDate, newestFirst } from "../lib/frontmatter";
 import { EQUATIONS, TAGS } from "../lib/taxonomy";
+import { hasThumbnail, HERO_SLUG } from "../viz/thumbnails";
 
 const entries = (await getCollection("phenomena")).sort(newestFirst);
+const hero = entries.find((e) => e.id === HERO_SLUG);
+const heroEquation = hero ? katex.renderToString(hero.data.equation, { displayMode: true }) : "";
+const tileEquation = (tex: string) => katex.renderToString(tex, { displayMode: true });
+
+// 図の目盛り（src/viz/thumbnails.ts の HERO_VARIANTS と nls-two-soliton の T_END = 40 に合わせる）
+const tTicks = [0, 20, 40];
+const xTicksWide = [-40, -20, 0, 20, 40];
 ---
 
 <BaseLayout>
-  <h1>非線形分散型方程式の数値実験</h1>
-  <p class="lead">
-    非線形 Schrödinger 方程式などの分散型方程式で起きる現象を、計算して見せます。
-    各ページには、解説と動くシミュレーション、そしてその計算が数値の誤りでないことを確かめた検証を載せています。
-  </p>
+  <section class="hero" aria-labelledby="hero-title">
+    <figure class="hero-figure">
+      <picture>
+        <source media="(max-width: 47.99rem)" srcset="/spacetime/hero-tall.png" />
+        <img
+          src="/spacetime/hero-wide.png"
+          width="1920"
+          height="960"
+          alt="非線形 Schrödinger 方程式の 2 つのソリトンが衝突する時空図。横軸が位置 x、縦軸が時刻 t（下から上）。2 本の明るい帯が中央で交わって X 字を描き、帯の色の縞は位相の回転を表す。"
+          fetchpriority="high"
+        />
+      </picture>
+      <span class="hero-cursor" aria-hidden="true"></span>
+      <span aria-hidden="true">
+        {tTicks.map((t) => <span class="hero-axis t" style={t === 0 ? "bottom: 8px" : t === 40 ? "top: 8px" : `bottom: ${(t / 40) * 100}%; transform: translateY(50%)`}>{t === 40 ? <><i class="mi">t</i> = {t}</> : t}</span>)}
+        {xTicksWide.slice(1, -1).map((x) => <span class="hero-axis x wide-only" style={`left: ${((x + 40) / 80) * 100}%`}>{x === 0 ? <><i class="mi">x</i> = 0</> : x.toString().replace("-", "−")}</span>)}
+      </span>
+    </figure>
+    <div class="hero-text">
+      <h1 id="hero-title"><span class="nb">非線形分散型方程式の</span><span class="nb">数値実験</span></h1>
+      <div class="hero-equation" set:html={heroEquation} />
+    </div>
+    <p class="hero-caption">
+      <span class="ring-key" aria-hidden="true"></span>
+      明るさが <span class="num">|<i class="mi">u</i>|</span>、色が位相 <span class="num">arg <i class="mi">u</i></span>。
+      この図はビルドのたびに <a href={`/phenomena/${HERO_SLUG}/`}>{hero?.data.title ?? HERO_SLUG}</a> と同じ solver で計算している。
+    </p>
+  </section>
 
-  <ul class="phenomenon-list">
-    {
-      entries.map((e) => (
-        <li>
-          <a class="phenomenon-card" href={`/phenomena/${e.id}/`}>
-            <h2>
-              {e.data.title}
-              {e.data.preprint && (
-                <span class="badge" title={`査読前の preprint（arXiv:${e.data.preprint.arxiv}v${e.data.preprint.version}）に基づく`}>
-                  preprint
-                </span>
-              )}
-            </h2>
-            <p class="published">
-              <time datetime={e.data.published}>{formatDate(e.data.published)}</time>
-            </p>
-            <p>{e.data.summary}</p>
-            <ul class="tags">
-              {e.data.equations.map((q) => (
-                <li class="equation">{EQUATIONS[q].label}</li>
-              ))}
-              {e.data.tags.map((t) => (
-                <li>{TAGS[t].label}</li>
-              ))}
-            </ul>
-          </a>
-        </li>
-      ))
-    }
-  </ul>
+  <div class="container">
+    <div class="intro prose">
+      <p>
+        非線形 Schrödinger 方程式や KdV 方程式などの分散型方程式で起きる現象を、計算して見せます。
+        各ページには、動かせるシミュレーションと解説、そしてその計算が数値の誤りでないことを確かめた検証の記録を載せています。
+      </p>
+    </div>
+
+    <div class="list-head" id="phenomena">
+      <h2>現象</h2>
+      <p>{entries.length} ページ。公開日の新しい順。</p>
+      <Checks kinds={["conservation", "convergence", "exact"]} legend />
+    </div>
+
+    <ul class="plates">
+      {
+        entries.map((e) => (
+          <li>
+            <a class="plate" href={`/phenomena/${e.id}/`}>
+              <figure class="plate-figure">
+                {hasThumbnail(e.id) ? (
+                  <img src={`/spacetime/${e.id}.png`} width="640" height="480" loading="lazy" alt="" />
+                ) : (
+                  <span class="tile-equation" set:html={tileEquation(e.data.equation)} />
+                )}
+              </figure>
+              <div class="plate-meta">
+                <span class="equations">{e.data.equations.map((q) => EQUATIONS[q].label).join("、")}</span>
+                <Checks kinds={e.data.verification.map((v) => v.kind)} />
+              </div>
+              <h3>
+                {e.data.title}
+                {e.data.preprint && (
+                  <>
+                    {" "}
+                    <span class="badge" title={`査読前の preprint（arXiv:${e.data.preprint.arxiv}v${e.data.preprint.version}）に基づく`}>
+                      preprint
+                    </span>
+                  </>
+                )}
+              </h3>
+              <p>{e.data.summary}</p>
+              <div class="plate-foot">
+                <time datetime={e.data.published}>{formatDate(e.data.published)}</time>
+                <ul class="tags">
+                  {e.data.tags.map((t) => (
+                    <li>{TAGS[t].label}</li>
+                  ))}
+                </ul>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
 </BaseLayout>

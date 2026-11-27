@@ -3,6 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout title="プライバシー" description="dispersive-lab のアクセス解析と Cookie の扱い">
+  <div class="container prose page-plain">
   <h1>プライバシー</h1>
 
   <h2>アクセス解析</h2>
@@ -17,6 +18,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     をご覧ください。
   </p>
 
+  <h2>Web フォント</h2>
+  <p>
+    文字の表示に Google Fonts のフォントを使っています。フォントを読み込むとき、ブラウザから Google のサーバーに接続するので、IP アドレスなどが Google に送られます。
+    Google Fonts は Cookie を使いません。
+  </p>
+
   <h2>計測を止める方法</h2>
   <p>
     ブラウザの設定で Cookie を無効にするか、
@@ -24,5 +31,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     を使うと、データの収集を止められます。
   </p>
 
-  <p class="lead">制定日: 2026 年 11 月 26 日</p>
+  <p class="dates">制定日: 2026 年 11 月 26 日<br />改定日: 2026 年 11 月 27 日（Web フォントの項を追加）</p>
+  </div>
 </BaseLayout>

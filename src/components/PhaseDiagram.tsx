@@ -47,27 +47,7 @@ const COLOR: Record<Outcome, string> = {
   undecided: "var(--pd-undecided)",
 };
 
-const STYLE = `
-.pd { --pd-scatter: #2a78d6; --pd-blowup: #eb6834; --pd-undecided: #a3a7ae; --pd-region: rgba(42,120,214,0.08); --pd-forbidden: #e4e6ea; }
-@media (prefers-color-scheme: dark) {
-  .pd { --pd-scatter: #3987e5; --pd-blowup: #d95926; --pd-undecided: #6b7280; --pd-region: rgba(57,135,229,0.10); --pd-forbidden: #2a2e35; }
-}
-.pd { margin: 1.5rem 0; }
-.pd-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; }
-.pd-legend > span { display: inline-flex; align-items: center; gap: 6px; }
-.pd .pd-cal { font-family: KaTeX_Caligraphic, serif; font-style: normal; font-weight: normal; font-size: 1.1em; }
-.pd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.pd figure { margin: 0; }
-.pd figcaption { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
-.pd svg { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-.pd svg text { fill: var(--text-muted); font-size: 11px; }
-.pd .pd-axis { stroke: var(--plot-axis); stroke-width: 1; }
-.pd .pd-gridline { stroke: var(--plot-grid); stroke-width: 1; }
-.pd .pd-hit { cursor: pointer; }
-.pd-detail { margin-top: 12px; font-size: 0.9rem; }
-.pd-tip { font-size: 0.85rem; color: var(--text); min-height: 1.6em; }
-.pd-empty { padding: 1rem; border: 1px dashed var(--border); border-radius: var(--radius); color: var(--text-muted); }
-`;
+// 配色と組み方は global.css の「相図」（--pd-* とステージのトークン）にある
 
 function useData() {
   const [state, setState] = useState<{ meta: Meta; rows: RowData[] } | { error: string } | null>(null);
@@ -106,9 +86,9 @@ function invariants(p: number, gamma: number, q: Meta["groundState"]) {
 
 function Marker({ outcome, cx, cy, size }: { outcome: Outcome; cx: number; cy: number; size: number }) {
   const r = size / 2;
-  if (outcome === "scatter") return <circle cx={cx} cy={cy} r={r} fill={COLOR.scatter} stroke="var(--surface)" strokeWidth={1} />;
+  if (outcome === "scatter") return <circle cx={cx} cy={cy} r={r} fill={COLOR.scatter} stroke="var(--stage)" strokeWidth={1} />;
   if (outcome === "blowup")
-    return <rect x={cx - r} y={cy - r} width={size} height={size} fill={COLOR.blowup} stroke="var(--surface)" strokeWidth={1} />;
+    return <rect x={cx - r} y={cy - r} width={size} height={size} fill={COLOR.blowup} stroke="var(--stage)" strokeWidth={1} />;
   return <circle cx={cx} cy={cy} r={r - 1} fill="none" stroke={COLOR.undecided} strokeWidth={2} />;
 }
 
@@ -211,25 +191,24 @@ export default function PhaseDiagram() {
 
   return (
     <div className="pd">
-      <style>{STYLE}</style>
       <div className="pd-legend" aria-hidden="true">
         {(["scatter", "blowup", "undecided"] as Outcome[]).map((o) => (
           <span key={o}>
-            <svg width="12" height="12" viewBox="0 0 12 12" style={{ border: "none", background: "none", width: 12 }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" style={{ width: 12 }}>
               <Marker outcome={o} cx={6} cy={6} size={10} />
             </svg>
             {LABEL[o]}（{counts[o]} 点）
           </span>
         ))}
         <span>
-          <svg width="20" height="12" viewBox="0 0 20 12" style={{ border: "none", background: "none", width: 20 }}>
-            <line x1="0" y1="6" x2="20" y2="6" stroke="var(--text)" strokeWidth="2" />
+          <svg width="20" height="12" viewBox="0 0 20 12" style={{ width: 20 }}>
+            <line x1="0" y1="6" x2="20" y2="6" stroke="var(--stage-ink)" strokeWidth="2" />
           </svg>
           数値の閾値（二分法）
         </span>
         <span>
-          <svg width="20" height="12" viewBox="0 0 20 12" style={{ border: "none", background: "none", width: 20 }}>
-            <line x1="0" y1="6" x2="20" y2="6" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
+          <svg width="20" height="12" viewBox="0 0 20 12" style={{ width: 20 }}>
+            <line x1="0" y1="6" x2="20" y2="6" stroke="var(--stage-dim)" strokeWidth="1.5" strokeDasharray="4 3" />
           </svg>
           <span>
             定理の境界（{ME} = 1・{G} = 1）
@@ -271,9 +250,9 @@ export default function PhaseDiagram() {
             )}
             {curves && (
               <>
-                <polyline points={poly(curves.yOne.filter(([p]) => p <= pMax + dp / 2), (p, g) => [px(p), py(g)])} fill="none" stroke="var(--text-muted)" strokeWidth={1.5} strokeDasharray="4 3" />
+                <polyline points={poly(curves.yOne.filter(([p]) => p <= pMax + dp / 2), (p, g) => [px(p), py(g)])} fill="none" stroke="var(--stage-dim)" strokeWidth={1.5} strokeDasharray="4 3" />
                 {curves.xOne.map((c, k) => (
-                  <polyline key={k} points={poly(c.filter(([p]) => p <= pMax + dp / 2), (p, g) => [px(p), py(g)])} fill="none" stroke="var(--text-muted)" strokeWidth={1.5} strokeDasharray="4 3" />
+                  <polyline key={k} points={poly(c.filter(([p]) => p <= pMax + dp / 2), (p, g) => [px(p), py(g)])} fill="none" stroke="var(--stage-dim)" strokeWidth={1.5} strokeDasharray="4 3" />
                 ))}
               </>
             )}
@@ -283,22 +262,22 @@ export default function PhaseDiagram() {
                 .map((r) => `${px((r.threshold!.lo + r.threshold!.hi) / 2).toFixed(1)},${py(r.gamma).toFixed(1)}`)
                 .join(" ")}
               fill="none"
-              stroke="var(--text)"
+              stroke="var(--stage-ink)"
               strokeWidth={2}
             />
             {sel && (
-              <rect x={px(selPoint!.p) - cellW / 2} y={py(rows[sel.row]!.gamma) - cellH / 2} width={cellW} height={cellH} fill="none" stroke="var(--text)" strokeWidth={2} />
+              <rect x={px(selPoint!.p) - cellW / 2} y={py(rows[sel.row]!.gamma) - cellH / 2} width={cellW} height={cellH} fill="none" stroke="var(--stage-ink)" strokeWidth={2} />
             )}
             <line className="pd-axis" x1={M.l} y1={H - M.b} x2={W - M.r} y2={H - M.b} />
             <line className="pd-axis" x1={M.l} y1={M.t} x2={M.l} y2={H - M.b} />
             {pTicks.map((p) => (
-              <text key={p} x={px(p)} y={H - M.b + 14} textAnchor="middle">
+              <text className="n" key={p} x={px(p)} y={H - M.b + 14} textAnchor="middle">
                 {p}
               </text>
             ))}
             {gTicks.map((g) => (
-              <text key={g} x={M.l - 6} y={py(g) + 4} textAnchor="end">
-                {g}
+              <text className="n" key={g} x={M.l - 6} y={py(g) + 4} textAnchor="end">
+                {String(g).replace("-", "−")}
               </text>
             ))}
             <text x={(M.l + W - M.r) / 2} y={H - 4} textAnchor="middle">
@@ -319,8 +298,8 @@ export default function PhaseDiagram() {
             {[0, 1, 2].map((x) => (
               <line key={`gx${x}`} className="pd-gridline" x1={qx(x)} y1={M.t} x2={qx(x)} y2={H - M.b} />
             ))}
-            <line x1={qx(1)} y1={M.t} x2={qx(1)} y2={H - M.b} stroke="var(--text-muted)" strokeWidth={1.5} strokeDasharray="4 3" />
-            <line x1={qx(X.lo)} y1={qy(1)} x2={qx(1)} y2={qy(1)} stroke="var(--text-muted)" strokeWidth={1.5} strokeDasharray="4 3" />
+            <line x1={qx(1)} y1={M.t} x2={qx(1)} y2={H - M.b} stroke="var(--stage-dim)" strokeWidth={1.5} strokeDasharray="4 3" />
+            <line x1={qx(X.lo)} y1={qy(1)} x2={qx(1)} y2={qy(1)} stroke="var(--stage-dim)" strokeWidth={1.5} strokeDasharray="4 3" />
             {rows.map((row, ri) =>
               row.points.map((pt, i) =>
                 pt.x > X.hi || pt.x < X.lo || pt.y > Y.hi ? null : (
@@ -340,12 +319,12 @@ export default function PhaseDiagram() {
             <line className="pd-axis" x1={M.l} y1={H - M.b} x2={W - M.r} y2={H - M.b} />
             <line className="pd-axis" x1={M.l} y1={M.t} x2={M.l} y2={H - M.b} />
             {[-2, -1, 0, 1, 2, 3].map((x) => (
-              <text key={x} x={qx(x)} y={H - M.b + 14} textAnchor="middle">
-                {x}
+              <text className="n" key={x} x={qx(x)} y={H - M.b + 14} textAnchor="middle">
+                {String(x).replace("-", "−")}
               </text>
             ))}
             {[0, 0.5, 1, 1.5, 2, 2.5].map((y) => (
-              <text key={y} x={M.l - 6} y={qy(y) + 4} textAnchor="end">
+              <text className="n" key={y} x={M.l - 6} y={qy(y) + 4} textAnchor="end">
                 {y}
               </text>
             ))}
@@ -391,17 +370,17 @@ function History({ point, gamma, blowupLevel }: { point: PointData; gamma: numbe
         {decades.map((d) => (
           <g key={d}>
             <line className="pd-gridline" x1={M.l} y1={vy(10 ** d)} x2={W - M.r} y2={vy(10 ** d)} />
-            <text x={M.l - 6} y={vy(10 ** d) + 4} textAnchor="end">
+            <text className="n" x={M.l - 6} y={vy(10 ** d) + 4} textAnchor="end">
               {`1e${d}`}
             </text>
           </g>
         ))}
         <line x1={M.l} y1={vy(blowupLevel)} x2={W - M.r} y2={vy(blowupLevel)} stroke="var(--pd-blowup)" strokeWidth={1} strokeDasharray="4 3" />
-        <polyline points={line(1)} fill="none" stroke="var(--text)" strokeWidth={2} />
+        <polyline points={line(1)} fill="none" stroke="var(--stage-ink)" strokeWidth={2} />
         <polyline points={line(2)} fill="none" stroke="var(--plot-re)" strokeWidth={2} strokeDasharray="6 3" />
         <line className="pd-axis" x1={M.l} y1={H - M.b} x2={W - M.r} y2={H - M.b} />
         {Array.from({ length: Math.floor(tMax) + 1 }, (_, t) => (
-          <text key={t} x={tx(t)} y={H - M.b + 14} textAnchor="middle">
+          <text className="n" key={t} x={tx(t)} y={H - M.b + 14} textAnchor="middle">
             {t}
           </text>
         ))}

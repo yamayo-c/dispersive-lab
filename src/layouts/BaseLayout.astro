@@ -1,6 +1,7 @@
 ---
 import "katex/dist/katex.min.css";
 import "../styles/global.css";
+import { ringGradient, seqGradient } from "../viz/colormap";
 
 interface Props {
   title?: string;
@@ -9,11 +10,13 @@ interface Props {
 
 const SITE_NAME = "dispersive-lab";
 const { title, description = "非線形分散型方程式の数値実験を見せるサイト" } = Astro.props;
+// 凡例の色相環と sequential の帯（src/viz/colormap.ts の表から作る）
+const colorVars = `--ring: ${ringGradient()}; --bar: ${seqGradient()};`;
 const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
 ---
 
 <!doctype html>
-<html lang="ja">
+<html lang="ja" style={colorVars}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,6 +24,13 @@ const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
+    <!-- 本文の明朝と UI の角ゴシック。日本語は Google Fonts が unicode-range で分割して配るので、使う字の分だけ読み込まれる -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
+    />
     <!--
       Google アナリティクス（GA4）。本番のホストで開いたときだけ gtag.js を読み込む。
       プレビューチャンネル（dispersive-lab--pr-…web.app）も本番ビルドなので、ビルド時ではなく実行時にホスト名で判定する。
@@ -46,16 +56,21 @@ const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
   </head>
   <body>
     <header class="site-header">
-      <div class="container"><a href="/">{SITE_NAME}</a></div>
+      <div class="container">
+        <a class="site-name" href="/"><span class="mark" aria-hidden="true"></span>{SITE_NAME}</a>
+        <nav class="site-nav" aria-label="サイト">
+          <a href="/#phenomena">現象</a>
+          <a href="https://github.com/yamayo-c/dispersive-lab">GitHub</a>
+        </nav>
+      </div>
     </header>
-    <main class="container">
+    <main>
       <slot />
     </main>
     <footer class="site-footer">
       <div class="container">
-        ソースコードと数値検証は
-        <a href="https://github.com/yamayo-c/dispersive-lab">GitHub</a> にあります。
-        <a class="footer-link" href="/privacy/">プライバシー</a>
+        <p>ソースコードと数値検証は <a href="https://github.com/yamayo-c/dispersive-lab">GitHub</a> にあります。コードは MIT、解説の本文は CC BY 4.0。</p>
+        <p><a href="/privacy/">プライバシー</a></p>
       </div>
     </footer>
   </body>

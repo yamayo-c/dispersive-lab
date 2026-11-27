@@ -119,6 +119,15 @@ verification:           # 「この計算の検証」欄。verify.test.ts のテ
 - 手元では `npm run precompute -- run <slug>` で `public/precomputed/<slug>/` に書き出してから確かめる。
 - CI（`ci.yml`・`preview.yml`・`deploy.yml`）は `npm run precompute -- sync` で、計算に関わるファイル（ページのフォルダのうち `index.mdx`・`verify.test.ts` 以外、`src/solvers`・`src/lib`・`scripts/precompute.ts`・依存関係）が変わったときだけ Cloud Run Jobs で計算し直し、結果を取ってくる。解説の本文を直しただけでは計算し直さない。CI とプレビューは同じコミットで同時に `sync` を呼ぶが、同じハッシュの計算が走っていれば後から来た側はそれを待つ。資格情報は [deploy.md](deploy.md)。
 
+## 一覧のサムネイル（時空図）
+
+一覧の各現象には、その現象の時空図（横 = x、縦 = t で下から上、明るさ = |u|、色 = arg u。実数の方程式は明るさ = u）のサムネイルが付く。ビルド時に `src/viz/thumbnails.ts` が作るので、ページを足したときの作業は次のとおり。
+
+- `sim.ts` のあるページ: **何もしなくてよい。** ページと同じ `setup`（既定のパラメータ）で solver を `tEnd` まで回し、`/spacetime/<slug>.png`（640 × 480）を作る。ビルドの時間はおよそ「ブラウザで最後まで再生する時間」だけ延びる（今のページで 1 ページ 0.1〜4 秒）。既定のパラメータで何も起きない（変化が小さすぎて模様にならない）と一覧で見分けにくいので、既定値は現象がよく見えるものにする。
+- 事前計算だけのページ: `src/viz/thumbnails.ts` の `PRECOMPUTED` に slug ごとの描き方（事前計算の結果を読んで RGB を返す関数）を足す。足さないと、サムネイルの代わりに方程式を台に載せた札が出る。手元で確かめるときは、事前計算の結果を `public/precomputed/<slug>/` に置いてからビルドする（CI では `npm run precompute -- sync` が置く）。
+- 描き方（カラーマップ・明るさの基準）は全ページ共通で、ページごとには変えない。明るさの基準は最大値ではなく 99.5% 分位点と最大値の 3/4 の大きいほう（尖った少数の点で全体が暗くならないように）。
+- 現象ページのシミュレーションにも、再生中に同じ描き方の時空図の帯が積み上がる（`src/components/SpacetimeStrip.tsx`）。Worker が返すコマを並べるだけなので、`sim.ts` に足すものはない。
+
 ## 7. 確かめてから PR を出す
 
 ```sh
