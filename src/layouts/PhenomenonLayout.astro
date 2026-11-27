@@ -5,7 +5,7 @@ import Simulation from "../components/Simulation";
 import { arxivUrl, formatDate } from "../lib/frontmatter";
 import { EQUATIONS, TAGS } from "../lib/taxonomy";
 import { filterHref, related } from "../site/filter";
-import { hasThumbnail } from "../viz/thumbnails";
+import { thumbnailUrl } from "../viz/thumbnails";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -25,11 +25,12 @@ const KIND_LABEL = {
 
 // 同じ方程式・同じタグのページ（src/site/filter.ts の related）
 const all = await getCollection("phenomena");
-const relatedPages = related(all, entry, 3).map(({ entry: e }) => ({
+const relatedPages = await Promise.all(related(all, entry, 3).map(async ({ entry: e }) => ({
   e,
+  thumb: await thumbnailUrl(e.id),
   sharedEq: e.data.equations.filter((q) => equations.includes(q)).map((q) => EQUATIONS[q].label),
   sharedTags: e.data.tags.filter((t) => tags.includes(t)).map((t) => TAGS[t].label),
-}));
+})));
 
 const repo = "https://github.com/yamayo-c/dispersive-lab/blob/main";
 const testUrl = `${repo}/src/content/phenomena/${entry.id}/verify.test.ts`;
@@ -95,10 +96,10 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
         <nav class="related" aria-labelledby="related-heading">
           <h2 id="related-heading">同じ方程式・同じタグのページ</h2>
           <ul>
-            {relatedPages.map(({ e, sharedEq, sharedTags }) => (
+            {relatedPages.map(({ e, thumb, sharedEq, sharedTags }) => (
               <li>
                 <a href={`/phenomena/${e.id}/`}>
-                  {hasThumbnail(e.id) ? <img src={`/spacetime/${e.id}.png`} width="96" height="72" loading="lazy" alt="" /> : <span />}
+                  {thumb ? <img src={thumb} width="96" height="72" loading="lazy" alt="" /> : <span />}
                   <span>
                     <span class="title">{e.data.title}</span>
                     <span class="why">{[...sharedEq, ...sharedTags.map((t) => `#${t}`)].join("、")}</span>

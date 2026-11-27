@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { defaultParams, type SimDefinition } from "../lib/simulation";
@@ -137,4 +138,37 @@ function scatteringBlowupMap(dir: string): Uint8Array | null {
 function hexRgb(hex: string): Uint8Array {
   const n = Number.parseInt(hex.slice(1), 16);
   return new Uint8Array([(n >> 16) & 255, (n >> 8) & 255, n & 255]);
+}
+
+/* ---- 画像の URL ---- */
+
+/**
+ * 画像の中身から作った短い版の印。Firebase Hosting は画像に max-age=3600 を付けるので、
+ * URL が同じままだと、作り直した画像が前に見た人へ最大 1 時間届かない。URL に ?v= を付けて避ける。
+ */
+function version(png: Uint8Array): string {
+  return createHash("sha256").update(png).digest("hex").slice(0, 10);
+}
+
+/** 一覧などに出すサムネイルの URL（無ければ null） */
+export async function thumbnailUrl(slug: string): Promise<string | null> {
+  if (!hasThumbnail(slug)) return null;
+  const png = await thumbnailPng(slug);
+  return png ? `/spacetime/${slug}.png?v=${version(png)}` : null;
+}
+
+const heroCache = new Map<string, Promise<Uint8Array<ArrayBuffer>>>();
+
+/** トップの図の PNG（同じビルドの中では 1 回だけ計算する） */
+export function heroPngCached(variant: keyof typeof HERO_VARIANTS): Promise<Uint8Array<ArrayBuffer>> {
+  let p = heroCache.get(variant);
+  if (!p) {
+    p = heroPng(variant);
+    heroCache.set(variant, p);
+  }
+  return p;
+}
+
+export async function heroUrl(variant: keyof typeof HERO_VARIANTS): Promise<string> {
+  return `/spacetime/hero-${variant}.png?v=${version(await heroPngCached(variant))}`;
 }

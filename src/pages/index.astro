@@ -5,12 +5,14 @@ import Checks from "../components/Checks.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { formatDate, newestFirst } from "../lib/frontmatter";
 import { EQUATION_IDS, EQUATIONS, TAG_IDS, TAGS } from "../lib/taxonomy";
-import { hasThumbnail, HERO_SLUG } from "../viz/thumbnails";
+import { HERO_SLUG, heroUrl, thumbnailUrl } from "../viz/thumbnails";
 
 const entries = (await getCollection("phenomena")).sort(newestFirst);
-const hero = entries.find((e) => e.id === HERO_SLUG);
-const heroEquation = hero ? katex.renderToString(hero.data.equation, { displayMode: true }) : "";
+const heroEntry = entries.find((e) => e.id === HERO_SLUG);
+const heroEquation = heroEntry ? katex.renderToString(heroEntry.data.equation, { displayMode: true }) : "";
 const tileEquation = (tex: string) => katex.renderToString(tex, { displayMode: true });
+const thumbs = new Map(await Promise.all(entries.map(async (e) => [e.id, await thumbnailUrl(e.id)] as const)));
+const hero = { wide: await heroUrl("wide"), tall: await heroUrl("tall") };
 
 // 絞り込みのチップ: 語彙（taxonomy.ts）の順に、1 ページ以上に付いている語だけ
 const count = (pred: (e: (typeof entries)[number]) => boolean) => entries.filter(pred).length;
@@ -22,9 +24,9 @@ const tagChips = TAG_IDS.map((id) => ({ id, label: TAGS[id].label, n: count((e) 
   <section class="hero" aria-labelledby="hero-title">
     <figure class="hero-figure">
       <picture>
-        <source media="(max-width: 47.99rem)" srcset="/spacetime/hero-tall.png" />
+        <source media="(max-width: 47.99rem)" srcset={hero.tall} />
         <img
-          src="/spacetime/hero-wide.png"
+          src={hero.wide}
           width="1920"
           height="960"
           alt="非線形 Schrödinger 方程式の 2 つのソリトンが衝突する時空図。横軸が位置 x、縦軸が時刻 t（下から上）。2 本の明るい帯が中央で交わって X 字を描く。"
@@ -42,7 +44,7 @@ const tagChips = TAG_IDS.map((id) => ({ id, label: TAGS[id].label, n: count((e) 
   <div class="container">
     <p class="hero-note">
       <span class="bar-key" aria-hidden="true"></span>
-      上の図は <a href={`/phenomena/${HERO_SLUG}/`}>{hero?.data.title ?? HERO_SLUG}</a> と同じ solver でビルドのたびに計算した時空図です。横が位置
+      上の図は <a href={`/phenomena/${HERO_SLUG}/`}>{heroEntry?.data.title ?? HERO_SLUG}</a> と同じ solver でビルドのたびに計算した時空図です。横が位置
       <i class="mi">x</i>（−40 から 40）、縦が時刻 <i class="mi">t</i>（下の 0 から上の 40）、明るさが <span class="num">|<i class="mi">u</i>|</span>。
     </p>
 
@@ -104,8 +106,8 @@ const tagChips = TAG_IDS.map((id) => ({ id, label: TAGS[id].label, n: count((e) 
           <li data-eq={e.data.equations.join(" ")} data-tags={e.data.tags.join(" ")}>
             <a class="plate" href={`/phenomena/${e.id}/`}>
               <figure class="plate-figure">
-                {hasThumbnail(e.id) ? (
-                  <img src={`/spacetime/${e.id}.png`} width="640" height="480" loading="lazy" alt="" />
+                {thumbs.get(e.id) ? (
+                  <img src={thumbs.get(e.id)!} width="640" height="480" loading="lazy" alt="" />
                 ) : (
                   <span class="tile-equation" set:html={tileEquation(e.data.equation)} />
                 )}
