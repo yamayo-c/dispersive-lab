@@ -47,7 +47,7 @@
 - `src/content/phenomena/<slug>/` — 1 現象 1 フォルダ: `index.mdx`（解説）・`sim.ts`（初期値とパラメータ）・`verify.test.ts`（数値検証）。事前計算だけのページは `sim.ts` の代わりに `precompute.ts`。追加の手順は [docs/adding-a-phenomenon.md](docs/adding-a-phenomenon.md)。
 - `src/layouts/BaseLayout.astro` — 全ページ共通の枠（ヘッダー・フッター、Google Fonts の読み込み（本文の Shippori Mincho B1・UI の Zen Kaku Gothic New）、本番のホストだけで読み込む Google アナリティクスのタグ。[docs/deploy.md](docs/deploy.md) の「アクセス解析（Google Analytics）」）。`src/pages/privacy.astro` がプライバシーのページ（`/privacy/`）。
 - `public/` — そのまま配信するファイル。Google Search Console の所有権確認ファイル（`search-console/google68763e476baafb50.html`。`firebase.json` の rewrite で `/google68763e476baafb50.html` に出す。消さない）と `robots.txt` を含む。サイトマップは `@astrojs/sitemap` がビルド時に生成する（[docs/deploy.md](docs/deploy.md) の「検索（Google Search Console）」）。
-- `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。`src/pages/index.astro` がトップ（nls-two-soliton の時空図を大きく置き、一覧は各現象の時空図のサムネイルを並べ、方程式とタグで絞り込める）。現象ページの方程式・タグは絞り込んだ一覧へのリンクで、末尾に同じ方程式・同じタグのページを出す。
+- `src/layouts/PhenomenonLayout.astro` — 現象ページの枠（題名・preprint の注記・方程式・シミュレーション・本文・「この計算の検証」欄）。`src/pages/index.astro` がトップ（nls-two-soliton の時空図を大きく置き、その下に一覧と同じ幅の 2 列でサイトの紹介文（左）と図の注記（右。狭い画面では 1 列で注記が先）を並べ、一覧は各現象の時空図のサムネイルを並べ、方程式とタグで絞り込める）。現象ページの方程式・タグは絞り込んだ一覧へのリンクで、末尾に同じ方程式・同じタグのページを出す。
 
 ## コマンド
 
