@@ -53,7 +53,7 @@ export default function Simulation({ slug }: Props) {
   const [frame, setFrame] = useState<Frame>();
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string>();
-  const [show, setShow] = useState<Show>({ abs: true, re: false, im: false, exact: true, phase: true });
+  const [show, setShow] = useState<Show>({ abs: true, re: false, im: false, exact: true, phase: false });
   const [copied, setCopied] = useState(false);
   const [speed, setSpeed] = useState<number>(1);
   /** 履歴を見ている時刻（null なら最新のコマ） */
