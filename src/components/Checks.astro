@@ -1,14 +1,12 @@
 ---
 /**
- * 検証の種類の印（保存量・収束・厳密解）。一覧の各現象と、その凡例に使う。
- * 3 つの枠をいつも同じ順に並べ、そのページが持つ種類だけを塗る。
+ * そのページで確かめた検証の種類と件数（index.mdx の verification の kind を数える）。一覧の各現象に出す。
+ * 付いている種類だけを、いつも同じ順（保存量・収束・厳密解）に文字で出す。
  */
 type Kind = "conservation" | "convergence" | "exact";
 
 interface Props {
   kinds: readonly Kind[];
-  /** 凡例として、すべてを塗らずに枠だけで出す */
-  legend?: boolean;
 }
 
 const KIND_LABEL: Record<Kind, string> = {
@@ -18,19 +16,18 @@ const KIND_LABEL: Record<Kind, string> = {
 };
 
 const ORDER: Kind[] = ["conservation", "convergence", "exact"];
-const { kinds, legend = false } = Astro.props;
-const has = new Set(kinds);
-const label = legend
-  ? "検証の種類: 保存量、収束（解像度・時間刻みを半分にした比較）、厳密解"
-  : `検証: ${ORDER.filter((k) => has.has(k)).map((k) => KIND_LABEL[k]).join("、")}`;
+const { kinds } = Astro.props;
+const counts = ORDER.map((k) => ({ k, n: kinds.filter((v) => v === k).length })).filter((c) => c.n > 0);
+const label = `検証: ${counts.map((c) => `${KIND_LABEL[c.k]} ${c.n} 件`).join("、")}`;
 ---
 
-<span class="checks" role="img" aria-label={label} title={legend ? "各ページで確かめた検証の種類（塗りつぶしがそのページにあるもの）" : undefined}>
+<ul class="checks" aria-label={label}>
   {
-    ORDER.map((k) => (
-      <span class={`check ${legend ? "legend" : has.has(k) ? "on" : "off"}`} aria-hidden="true">
-        {KIND_LABEL[k]}
-      </span>
+    counts.map((c) => (
+      <li class="check" aria-hidden="true">
+        {KIND_LABEL[c.k]}
+        {c.n > 1 && <span class="check-n">{c.n}</span>}
+      </li>
     ))
   }
-</span>
+</ul>

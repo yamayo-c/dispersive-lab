@@ -8,6 +8,15 @@ import { writeDomainColor, writeRealColor } from "./colormap";
  * ブラウザの canvas（シミュレーションの帯・トップの図）と、ビルド時の PNG（一覧のサムネイル）が共用する。
  * 計算の中身には触れない（受け取ったコマを並べるだけ）。
  */
+/** 複素数の場の色の付け方（位相を色相で見せるか、|u| だけか） */
+export type ColorMode = "phase" | "magnitude";
+
+/** 時空図の点 (列 c, 行 y) の値。複素数なら |u| と arg u、実数なら u（arg は 0）。まだ埋まっていない行なら null */
+export interface SpacetimeSample {
+  value: number;
+  arg: number;
+}
+
 export interface SpacetimeOptions {
   width: number;
   height: number;
@@ -92,6 +101,24 @@ export class Spacetime {
     return { from, to };
   }
 
+  /** 行 y の時刻（rowOf の逆） */
+  timeOf(y: number): number {
+    const [t0, t1] = this.opts.tRange;
+    return t0 + (1 - y / (this.height - 1)) * (t1 - t0);
+  }
+
+  /** 列 c の位置 x */
+  xOf(c: number): number {
+    const [a, b] = this.opts.xRange;
+    return a + ((c + 0.5) / this.width) * (b - a);
+  }
+
+  sample(c: number, y: number): SpacetimeSample | null {
+    if (y < this.topRow || y >= this.height || c < 0 || c >= this.width) return null;
+    const k = y * this.width + c;
+    return { value: this.values[2 * k]!, arg: this.values[2 * k + 1]! };
+  }
+
   /**
    * 埋まった範囲の値の分位点（0〜1）。尖った少数の点（Gibbs の山など）に明るさの基準を引っ張られないよう、
    * サムネイルでは最大ではなくこれを基準にする。
@@ -104,15 +131,19 @@ export class Spacetime {
     return vals[Math.min(vals.length - 1, Math.floor(q * vals.length))] ?? 0;
   }
 
-  /** 行 [from, to] を、大きさの基準 norm で色にして RGBA の out（width × height × 4）に書く */
-  paint(out: Uint8ClampedArray | Uint8Array, norm: number, from = 0, to = this.height - 1, channels: 3 | 4 = 4): void {
+  /**
+   * 行 [from, to] を、大きさの基準 norm で色にして out（width × height × channels）に書く。
+   * mode = "phase" は複素数の場を domain coloring（明るさ = |u|、色 = arg u）、"magnitude" は |u| だけを sequential で描く。
+   * 実数の場はどちらでも sequential。
+   */
+  paint(out: Uint8ClampedArray | Uint8Array, norm: number, from = 0, to = this.height - 1, channels: 3 | 4 = 4, mode: ColorMode = "phase"): void {
     const w = this.width;
     const v = this.values;
     for (let y = from; y <= to; y++) {
       for (let c = 0; c < w; c++) {
         const k = y * w + c;
         const o = k * channels;
-        if (this.real) writeRealColor(out, o, v[2 * k]!, norm);
+        if (this.real || mode === "magnitude") writeRealColor(out, o, v[2 * k]!, norm);
         else {
           const m = v[2 * k]!;
           const a = v[2 * k + 1]!;

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type Ref } from "react";
 import { DOMAIN_LUT, level, LEVEL_STEPS, PHASE_STEPS, phaseIndex, SEQ_LUT } from "../viz/colormap";
 import { onCanvasFontsReady, resolveColor, ticks, formatTick } from "./plotText";
 
@@ -24,6 +24,8 @@ export interface PlotFill {
   real: boolean;
   /** 明るさの基準（この値で最も明るい色） */
   norm: number;
+  /** 複素数の場で位相を色相で見せるか（"magnitude" なら |u| の sequential） */
+  mode?: "phase" | "magnitude";
 }
 
 interface Props {
@@ -40,6 +42,10 @@ interface Props {
   yLabel?: string;
   /** アクセシビリティ用の説明 */
   ariaLabel: string;
+  /** カーソルを当てた位置 x（外れたら null）を知らせる */
+  onProbe?: (x: number | null) => void;
+  /** 画像の保存のために canvas を受け取る */
+  canvasRef?: Ref<HTMLCanvasElement>;
 }
 
 /** 線グラフと時空図の帯で横軸の位置を揃えるための余白 */
@@ -47,8 +53,13 @@ export const PLOT_MARGIN = { left: 44, right: 10 } as const;
 const MARGIN = { ...PLOT_MARGIN, top: 14, bottom: 10 };
 
 /** 1 次元の場を描く canvas（周期区間なので右端の点 x = xMin + L は描かない）。暗いステージの上に描く */
-export default function FieldPlot({ x, curves, markers, fill, yRange, xRange, yLabel, ariaLabel }: Props) {
+export default function FieldPlot({ x, curves, markers, fill, yRange, xRange, yLabel, ariaLabel, onProbe, canvasRef: outerRef }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const setCanvas = (c: HTMLCanvasElement | null) => {
+    canvasRef.current = c;
+    if (typeof outerRef === "function") outerRef(c);
+    else if (outerRef) (outerRef as { current: HTMLCanvasElement | null }).current = c;
+  };
   const sizeRef = useRef({ w: 0, h: 0 });
 
   const draw = () => {
@@ -131,10 +142,10 @@ export default function FieldPlot({ x, curves, markers, fill, yRange, xRange, yL
         let v: number;
         let o: number;
         let lut: Uint8Array;
-        if (fill.real) {
-          v = re;
+        if (fill.real || fill.mode === "magnitude") {
+          v = fill.real ? re : Math.hypot(re, im);
           if (!(v > 0)) continue;
-          o = level(v / fill.norm) * 3;
+          o = Math.max(level(v / fill.norm), Math.round(LEVEL_STEPS * 0.35)) * 3;
           lut = SEQ_LUT;
         } else {
           v = Math.hypot(re, im);
@@ -215,5 +226,27 @@ export default function FieldPlot({ x, curves, markers, fill, yRange, xRange, yL
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="field-plot" role="img" aria-label={ariaLabel} />;
+  // カーソルの位置 → x
+  const probe = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!onProbe) return;
+    const n = x.length;
+    const { w } = sizeRef.current;
+    const pw = w - MARGIN.left - MARGIN.right;
+    const dx = x[1]! - x[0]!;
+    const x0 = xRange ? xRange[0] : x[0]!;
+    const x1 = xRange ? xRange[1] : x[n - 1]! + dx;
+    const f = (ev.nativeEvent.offsetX - MARGIN.left) / pw;
+    onProbe(f < 0 || f > 1 ? null : x0 + f * (x1 - x0));
+  };
+
+  return (
+    <canvas
+      ref={setCanvas}
+      className="field-plot"
+      role="img"
+      aria-label={ariaLabel}
+      onPointerMove={probe}
+      onPointerLeave={() => onProbe?.(null)}
+    />
+  );
 }

@@ -364,27 +364,8 @@ h3 {
   }
 }
 
-/* 軸の目盛り（図の上に重ねる） */
-.hero-axis {
-  position: absolute;
-  font-family: var(--font-num);
-  font-size: var(--step--1);
-  color: var(--stage-dim);
-  line-height: 1;
-  pointer-events: none;
-}
-
-.hero-axis.t {
-  left: 12px;
-}
-
 .hero .nb {
   display: inline-block;
-}
-
-.hero-axis.x {
-  bottom: 10px;
-  transform: translateX(-50%);
 }
 
 /* 本文のカラムの左端に揃える（ページの最大幅より広い画面でも） */
@@ -419,29 +400,6 @@ h3 {
   text-align: left;
 }
 
-.hero-caption {
-  position: absolute;
-  right: max(var(--gutter), (100% - var(--page-max)) / 2 + var(--gutter));
-  bottom: 34px;
-  width: min(22rem, 34%);
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: var(--step--2);
-  line-height: 1.7;
-  color: var(--stage-dim);
-  text-align: right;
-}
-
-.hero-caption a {
-  color: var(--stage-ink);
-  text-decoration-color: var(--stage-axis);
-}
-
-.hero-caption .ring-key {
-  vertical-align: -0.2em;
-  margin-right: 0.4em;
-}
-
 @media (max-width: 47.99rem) {
   .hero-figure {
     aspect-ratio: 4 / 5;
@@ -453,13 +411,6 @@ h3 {
     transform: none;
     width: auto;
     padding: 20px var(--gutter) 4px;
-  }
-
-  .hero-caption {
-    position: static;
-    width: auto;
-    text-align: left;
-    padding: 0 var(--gutter) 20px;
   }
 }
 
@@ -490,10 +441,6 @@ h3 {
   font-family: var(--font-ui);
   font-size: var(--step--1);
   color: var(--graphite);
-}
-
-.list-head .checks {
-  margin-left: auto;
 }
 
 /* 一覧: 時空図の標本を並べる（カードの箱は使わない） */
@@ -582,41 +529,33 @@ h3 {
   margin-top: 10px;
 }
 
-/* 検証の種類の印（一覧と現象ページで共通） */
+/* 検証の種類（付いているものだけを文字で。一覧と現象ページの記録で共通） */
 .checks {
   display: inline-flex;
-  gap: 0.9em;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-family: var(--font-ui);
   font-size: var(--step--2);
-  line-height: 1.6;
-  white-space: nowrap;
+  line-height: 1.5;
 }
 
 .check {
   display: inline-flex;
-  align-items: center;
-  gap: 0.35em;
-  color: var(--graphite);
-}
-
-.check::before {
-  content: "";
-  width: 0.62em;
-  height: 0.62em;
-  border: 1.5px solid currentColor;
-  border-radius: 1px;
-}
-
-.check.on {
+  align-items: baseline;
+  gap: 0.3em;
+  padding: 0 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
   color: var(--ink);
+  white-space: nowrap;
 }
 
-.check.on::before {
-  background: currentColor;
-}
-
-.check.off {
-  color: var(--rule-strong);
+.check-n {
+  font-family: var(--font-num);
+  color: var(--graphite);
 }
 
 .tags {
@@ -812,7 +751,6 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-left: auto;
   font-size: var(--step--2);
   color: var(--stage-dim);
 }
@@ -1161,15 +1099,6 @@ h3 {
   margin: 0;
 }
 
-@media (max-width: 47.99rem) {
-  .wide-only {
-    display: none;
-  }
-}
-
-.record-tags {
-  margin-top: 16px;
-}
 
 .page-plain h1 {
   margin: 40px 0 0;
@@ -1210,9 +1139,347 @@ h3 {
   white-space: nowrap;
 }
 
-@media (max-width: 47.99rem) {
-  .list-head .checks {
-    margin-left: 0;
-    flex-basis: 100%;
+
+/* トップの図の注記（図の下の無地の地に、本文と同じ大きさで） */
+.hero-note {
+  max-width: var(--measure);
+  margin: 16px 0 0;
+  font-size: var(--step-0);
+  line-height: 1.85;
+  color: var(--graphite);
+}
+
+.hero-note .bar-key {
+  width: 40px;
+  height: 6px;
+  margin-right: 0.5em;
+  vertical-align: 0.15em;
+}
+
+/* 一覧の絞り込み */
+.filters {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 28px;
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+}
+
+.filters[hidden] {
+  display: none;
+}
+
+.filter-group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+}
+
+.filter-group legend {
+  float: left;
+  padding: 0;
+  margin-right: 14px;
+  font-weight: 500;
+}
+
+.filter-group .rule {
+  font-weight: 400;
+  color: var(--graphite);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  font: inherit;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  padding: 3px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--ink);
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.chip-n {
+  font-family: var(--font-num);
+  font-size: 0.92em;
+  opacity: 0.75;
+}
+
+.filter-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  min-height: 1.8em;
+  margin: 0;
+  color: var(--graphite);
+}
+
+.filter-empty {
+  margin: 0 0 32px;
+  padding: 18px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+}
+
+.filter-empty .button {
+  margin-left: 0.6em;
+}
+
+.plates > li[hidden] {
+  display: none;
+}
+
+/* 現象ページ: 方程式とタグは絞り込んだ一覧へのリンク */
+.ph-meta a {
+  color: var(--graphite);
+}
+
+.ph-meta a:hover {
+  color: var(--ink);
+}
+
+.ph-terms {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 関連ページ */
+.related {
+  margin-top: 64px;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+}
+
+.related h2 {
+  margin: 0 0 16px;
+  font-size: var(--step-1);
+}
+
+.related ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 24px 28px;
+}
+
+.related a {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  text-decoration: none;
+}
+
+.related img {
+  width: 96px;
+  height: 72px;
+  display: block;
+  background: var(--stage);
+  border-radius: 2px;
+}
+
+.related .title {
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.related a:hover .title {
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.related .why {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: var(--step--2);
+  color: var(--graphite);
+}
+
+/* ===== ベンチの機能（読み出し・履歴・ずれのグラフ・再生の操作） ===== */
+
+/* 読み出し（カーソルを当てた点の値）は、凡例の左の空きに出す */
+.probe {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  font-size: var(--step--1);
+  color: var(--stage-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-chip {
+  font: inherit;
+  font-size: var(--step--2);
+  padding: 2px 10px;
+  border: 1px solid var(--stage-axis);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--stage-ink);
+  cursor: pointer;
+}
+
+.stage-chip:hover {
+  border-color: var(--stage-ink);
+}
+
+.stage :focus-visible {
+  outline-color: var(--stage-ink);
+}
+
+.strip {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.ring-key.small {
+  width: 14px;
+  height: 14px;
+}
+
+.drift {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--stage-grid);
+}
+
+.drift-title {
+  margin: 0 4px 2px;
+  font-size: var(--step--2);
+  color: var(--stage-dim);
+}
+
+.drift-chart {
+  height: 92px;
+}
+
+.line-key {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  margin-right: 6px;
+  vertical-align: 0.3em;
+  border-top: 2px solid var(--c);
+}
+
+.readouts {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.transport {
+  flex-wrap: wrap;
+}
+
+.transport .button.primary {
+  flex: 1 0 100%;
+}
+
+.transport .button:not(.primary) {
+  flex: 1;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.speed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: -8px 0 10px;
+}
+
+.speed-label {
+  margin-right: 6px;
+  color: var(--graphite);
+}
+
+.seg {
+  font-family: var(--font-num);
+  font-size: var(--step-0);
+  padding: 1px 7px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--graphite);
+  cursor: pointer;
+}
+
+.seg:hover {
+  color: var(--ink);
+}
+
+.seg[aria-pressed="true"] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.keys {
+  margin: 0 0 18px;
+  font-size: var(--step--2);
+  line-height: 1.8;
+  color: var(--graphite);
+}
+
+kbd {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  padding: 0 5px;
+  border: 1px solid var(--rule-strong);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+.param-actions {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+@media (hover: none) {
+  .kbd-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 36rem) {
+  .readouts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
   }
 }

@@ -1,9 +1,11 @@
 ---
-import type { CollectionEntry } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import katex from "katex";
 import Simulation from "../components/Simulation";
 import { arxivUrl, formatDate } from "../lib/frontmatter";
 import { EQUATIONS, TAGS } from "../lib/taxonomy";
+import { filterHref, related } from "../site/filter";
+import { hasThumbnail } from "../viz/thumbnails";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -21,6 +23,14 @@ const KIND_LABEL = {
   exact: "厳密解",
 } as const;
 
+// 同じ方程式・同じタグのページ（src/site/filter.ts の related）
+const all = await getCollection("phenomena");
+const relatedPages = related(all, entry, 3).map(({ entry: e }) => ({
+  e,
+  sharedEq: e.data.equations.filter((q) => equations.includes(q)).map((q) => EQUATIONS[q].label),
+  sharedTags: e.data.tags.filter((t) => tags.includes(t)).map((t) => TAGS[t].label),
+}));
+
 const repo = "https://github.com/yamayo-c/dispersive-lab/blob/main";
 const testUrl = `${repo}/src/content/phenomena/${entry.id}/verify.test.ts`;
 const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
@@ -29,10 +39,13 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
 <BaseLayout title={title} description={summary}>
   <article class="container">
     <header class="ph-head">
-      <p class="ph-meta">
-        <span>{equations.map((q) => EQUATIONS[q].label).join("、")}</span>
+      <div class="ph-meta">
+        <ul class="ph-terms" aria-label="方程式とタグ（押すと、同じ方程式・タグのページの一覧へ）">
+          {equations.map((q) => <li><a href={filterHref({ eq: [q], tag: [] })}>{EQUATIONS[q].label}</a></li>)}
+          {tags.map((t) => <li><a href={filterHref({ eq: [], tag: [t] })}>#{TAGS[t].label}</a></li>)}
+        </ul>
         <time datetime={published}>{formatDate(published)} 公開</time>
-      </p>
+      </div>
       <h1>{title}</h1>
       {
         preprint && (
@@ -69,21 +82,33 @@ const simUrl = `${repo}/src/content/phenomena/${entry.id}/sim.ts`;
         {
           verification.map((v) => (
             <li>
-              <span class="check on">{KIND_LABEL[v.kind]}</span>
+              <span><span class="check">{KIND_LABEL[v.kind]}</span></span>
               <span>{v.description}</span>
             </li>
           ))
         }
       </ol>
-      {
-        tags.length > 0 && (
-          <ul class="tags record-tags">
-            {tags.map((t) => (
-              <li>{TAGS[t].label}</li>
+    </section>
+
+    {
+      relatedPages.length > 0 && (
+        <nav class="related" aria-labelledby="related-heading">
+          <h2 id="related-heading">同じ方程式・同じタグのページ</h2>
+          <ul>
+            {relatedPages.map(({ e, sharedEq, sharedTags }) => (
+              <li>
+                <a href={`/phenomena/${e.id}/`}>
+                  {hasThumbnail(e.id) ? <img src={`/spacetime/${e.id}.png`} width="96" height="72" loading="lazy" alt="" /> : <span />}
+                  <span>
+                    <span class="title">{e.data.title}</span>
+                    <span class="why">{[...sharedEq, ...sharedTags.map((t) => `#${t}`)].join("、")}</span>
+                  </span>
+                </a>
+              </li>
             ))}
           </ul>
-        )
-      }
-    </section>
+        </nav>
+      )
+    }
   </article>
 </BaseLayout>

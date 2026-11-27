@@ -1,9 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent, type PointerEvent, type Ref } from "react";
 import { STAGE } from "../viz/colormap";
-import { Spacetime } from "../viz/spacetime";
+import { Spacetime, type ColorMode } from "../viz/spacetime";
 import { PLOT_MARGIN } from "./FieldPlot";
 import { formatTick, onCanvasFontsReady, resolveColor, ticks } from "./plotText";
 import type { Frame } from "./workerProtocol";
+
+/** カーソルを当てた点の値 */
+export interface StripProbe {
+  x: number;
+  t: number;
+  value: number;
+  arg: number;
+}
 
 interface Props {
   /** 格子点 */
@@ -15,10 +23,18 @@ interface Props {
   real: boolean;
   /** 明るさの基準 */
   norm: number;
-  /** いまのコマ。届いたコマを順に積み上げる */
-  frame: Frame;
+  /** 複素数の場の色（位相を色相で見せるか、|u| だけか） */
+  colorMode: ColorMode;
+  /** Worker から届いた最新のコマ。届いた順に積み上げる */
+  live: Frame;
+  /** いま表示している時刻（履歴を見ているときは過去の時刻）。横線で示す */
+  viewT: number;
   /** 変わったら積み上げた履歴を捨てる（初期化し直したとき） */
   resetKey: number;
+  /** クリック・ドラッグ・矢印キーで時刻を選んだ */
+  onSeek: (t: number) => void;
+  onProbe?: (p: StripProbe | null) => void;
+  canvasRef?: Ref<HTMLCanvasElement>;
   ariaLabel: string;
 }
 
@@ -30,12 +46,16 @@ const MARGIN = { ...PLOT_MARGIN, top: 4, bottom: 30 };
 /**
  * 再生中に |u|（実数なら u）の履歴を積み上げる時空図の帯。横 = x（上の線グラフと揃える）、縦 = t（下から上）。
  * Worker が返すコマを並べるだけで、計算には関わらない。
+ * 計算済みの範囲をクリック・ドラッグ（またはフォーカスして ↑↓）すると、その時刻のコマを表示する（onSeek）。
  */
-export default function SpacetimeStrip({ x, xRange, tRange, real, norm, frame, resetKey, ariaLabel }: Props) {
+export default function SpacetimeStrip(props: Props) {
+  const { x, xRange, tRange, real, norm, colorMode, live, viewT, resetKey, onSeek, onProbe, canvasRef: outerRef, ariaLabel } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
-  const bufRef = useRef<{ st: Spacetime; image: ImageData; off: HTMLCanvasElement; key: number } | null>(null);
-  const tRef = useRef(frame.t);
+  const bufRef = useRef<{ st: Spacetime; image: ImageData; off: HTMLCanvasElement; key: number; mode: ColorMode } | null>(null);
+  const viewRef = useRef(viewT);
+  viewRef.current = viewT;
+  const dragRef = useRef(false);
 
   const n = x.length;
   const dx = n > 1 ? x[1]! - x[0]! : 1;
@@ -51,19 +71,33 @@ export default function SpacetimeStrip({ x, xRange, tRange, real, norm, frame, r
     const s = Number.parseInt(STAGE.slice(1), 16);
     for (let k = 0; k < COLS * ROWS; k++) image.data.set([(s >> 16) & 255, (s >> 8) & 255, s & 255, 255], k * 4);
     off.getContext("2d")!.putImageData(image, 0, 0);
-    bufRef.current = { st, image, off, key: resetKey };
+    bufRef.current = { st, image, off, key: resetKey, mode: colorMode };
   }
 
   // 届いたコマを足して、その行だけ色を付ける
   useEffect(() => {
     const b = bufRef.current;
     if (!b) return;
-    const { from, to } = b.st.add(frame.t, frame.re, frame.im);
-    b.st.paint(b.image.data, norm, from, to);
+    const { from, to } = b.st.add(live.t, live.re, live.im);
+    b.st.paint(b.image.data, norm, from, to, 4, b.mode);
     b.off.getContext("2d")!.putImageData(b.image, 0, 0, 0, from, COLS, to - from + 1);
-    tRef.current = frame.t;
     drawRef.current();
-  }, [frame, resetKey, norm]);
+  }, [live, resetKey, norm]);
+
+  // 色の付け方を切り替えたら、埋まった行を塗り直す
+  useEffect(() => {
+    const b = bufRef.current;
+    if (!b || b.mode === colorMode) return;
+    b.mode = colorMode;
+    if (b.st.topRow < ROWS) {
+      b.st.paint(b.image.data, norm, b.st.topRow, ROWS - 1, 4, colorMode);
+      b.off.getContext("2d")!.putImageData(b.image, 0, 0);
+    }
+    drawRef.current();
+  }, [colorMode, norm]);
+
+  // 表示している時刻が変わったら横線を描き直す
+  useEffect(() => drawRef.current(), [viewT]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -93,15 +127,22 @@ export default function SpacetimeStrip({ x, xRange, tRange, real, norm, frame, r
     const textColor = resolveColor(canvas, "--stage-dim");
     const axisColor = resolveColor(canvas, "--stage-axis");
 
-    // いまの時刻の線
-    const ty = Math.round(sy(tRef.current)) + 0.5;
+    // いま表示している時刻の線（左に小さな三角を付けて、つまみであることを示す）
+    const ty = Math.round(sy(viewRef.current)) + 0.5;
     ctx.strokeStyle = resolveColor(canvas, "--stage-ink");
-    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = resolveColor(canvas, "--stage-ink");
+    ctx.globalAlpha = 0.7;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(MARGIN.left, ty);
     ctx.lineTo(MARGIN.left + pw, ty);
     ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(MARGIN.left - 1, ty);
+    ctx.lineTo(MARGIN.left - 7, ty - 4);
+    ctx.lineTo(MARGIN.left - 7, ty + 4);
+    ctx.closePath();
+    ctx.fill();
     ctx.globalAlpha = 1;
 
     // 目盛り: x（下）と t（左。始まりと終わり）
@@ -120,12 +161,12 @@ export default function SpacetimeStrip({ x, xRange, tRange, real, norm, frame, r
     }
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
-    for (const t of [t0, t1]) ctx.fillText(formatTick(Number(t.toPrecision(4))), MARGIN.left - 8, sy(t) + (t === t0 ? -6 : 6));
+    for (const t of [t0, t1]) ctx.fillText(formatTick(Number(t.toPrecision(4))), MARGIN.left - 10, sy(t) + (t === t0 ? -6 : 6));
     ctx.font = "italic 14px KaTeX_Math, serif";
-    ctx.fillText("t", MARGIN.left - 8, MARGIN.top + ph / 2);
-    ctx.textAlign = "left";
+    ctx.fillText("t", MARGIN.left - 10, MARGIN.top + ph / 2);
+    ctx.textAlign = "right";
     ctx.textBaseline = "bottom";
-    ctx.fillText("x", MARGIN.left + pw + 2 - 8, h - 1);
+    ctx.fillText("x", MARGIN.left + pw, h - 1);
   };
 
   const drawRef = useRef(draw);
@@ -148,5 +189,81 @@ export default function SpacetimeStrip({ x, xRange, tRange, real, norm, frame, r
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="field-plot" role="img" aria-label={ariaLabel} />;
+  /** canvas 上の位置 → 内部の列・行（範囲外なら null） */
+  const locate = (ev: PointerEvent<HTMLCanvasElement>) => {
+    const { w, h } = sizeRef.current;
+    const pw = w - MARGIN.left - MARGIN.right;
+    const ph = h - MARGIN.top - MARGIN.bottom;
+    const fx = (ev.nativeEvent.offsetX - MARGIN.left) / pw;
+    const fy = (ev.nativeEvent.offsetY - MARGIN.top) / ph;
+    return { fx, fy, inside: fx >= 0 && fx <= 1 && fy >= 0 && fy <= 1 };
+  };
+
+  /** 計算済みの範囲（下端 t0 から最新のコマまで）に収めて時刻を知らせる */
+  const seekTo = (t: number) => {
+    const b = bufRef.current;
+    const [t0] = tRange;
+    const latest = b && b.st.topRow < ROWS ? b.st.timeOf(b.st.topRow) : t0;
+    onSeek(Math.min(Math.max(t, t0), Math.max(latest, live.t)));
+  };
+
+  const timeAt = (fy: number) => tRange[0] + (1 - Math.min(1, Math.max(0, fy))) * (tRange[1] - tRange[0]);
+
+  const onPointerDown = (ev: PointerEvent<HTMLCanvasElement>) => {
+    const { fy, inside } = locate(ev);
+    if (!inside) return;
+    dragRef.current = true;
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    seekTo(timeAt(fy));
+  };
+
+  const onPointerMove = (ev: PointerEvent<HTMLCanvasElement>) => {
+    const { fx, fy, inside } = locate(ev);
+    if (dragRef.current) seekTo(timeAt(fy));
+    if (!onProbe) return;
+    const b = bufRef.current;
+    if (!inside || !b) return onProbe(null);
+    const c = Math.min(COLS - 1, Math.floor(fx * COLS));
+    const y = Math.min(ROWS - 1, Math.floor(fy * ROWS));
+    const s = b.st.sample(c, y);
+    onProbe(s ? { x: b.st.xOf(c), t: b.st.timeOf(y), value: s.value, arg: s.arg } : null);
+  };
+
+  const onKeyDown = (ev: KeyboardEvent<HTMLCanvasElement>) => {
+    const span = tRange[1] - tRange[0];
+    const step = ev.shiftKey ? span / 10 : span / 50;
+    if (ev.key === "ArrowUp" || ev.key === "ArrowRight") seekTo(viewT + step);
+    else if (ev.key === "ArrowDown" || ev.key === "ArrowLeft") seekTo(viewT - step);
+    else if (ev.key === "Home") seekTo(tRange[0]);
+    else if (ev.key === "End") seekTo(tRange[1]);
+    else return;
+    ev.preventDefault();
+    ev.stopPropagation();
+  };
+
+  const setCanvas = (c: HTMLCanvasElement | null) => {
+    canvasRef.current = c;
+    if (typeof outerRef === "function") outerRef(c);
+    else if (outerRef) (outerRef as { current: HTMLCanvasElement | null }).current = c;
+  };
+
+  return (
+    <canvas
+      ref={setCanvas}
+      className="field-plot strip"
+      tabIndex={0}
+      role="slider"
+      aria-label={ariaLabel}
+      aria-valuemin={tRange[0]}
+      aria-valuemax={tRange[1]}
+      aria-valuenow={Number(viewT.toFixed(3))}
+      aria-valuetext={`t = ${viewT.toFixed(3)}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={() => (dragRef.current = false)}
+      onPointerCancel={() => (dragRef.current = false)}
+      onPointerLeave={() => onProbe?.(null)}
+      onKeyDown={onKeyDown}
+    />
+  );
 }

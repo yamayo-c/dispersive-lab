@@ -10,6 +10,7 @@ import { spacetimeNorm } from "./spacetime";
  * 一覧のサムネイル（ビルド時に作る PNG。Node だけで動く）。
  *
  * - sim.ts のあるページ: ページと同じ設定（既定のパラメータ）で solver を最後まで回した時空図。
+ *   色は |u|（実数なら u）の明るさだけ（sequential）。位相の色はこの大きさでは読み取れないので、現象ページのベンチだけで見せる。
  *   ページを足せば自動で付く。
  * - 事前計算だけのページ: PRECOMPUTED に slug ごとの描き方を登録したものだけ、事前計算の結果から描く
  *   （結果が public/precomputed/<slug>/ に無いときは付けない）。
@@ -54,7 +55,7 @@ async function makeThumbnail(slug: string): Promise<Uint8Array<ArrayBuffer> | nu
     const def = (await load()).default;
     const st = runSpacetime(def.setup(defaultParams(def)), THUMB_WIDTH, THUMB_HEIGHT);
     const rgb = new Uint8Array(THUMB_WIDTH * THUMB_HEIGHT * 3);
-    st.paint(rgb, spacetimeNorm(st), 0, THUMB_HEIGHT - 1, 3);
+    st.paint(rgb, spacetimeNorm(st), 0, THUMB_HEIGHT - 1, 3, "magnitude");
     return encodePng(rgb, THUMB_WIDTH, THUMB_HEIGHT);
   }
   const draw = PRECOMPUTED[slug];
@@ -77,7 +78,7 @@ export async function heroPng(variant: keyof typeof HERO_VARIANTS): Promise<Uint
   const setup = def.setup(defaultParams(def));
   const st = runSpacetime(setup, v.width, v.height, v.xRange);
   const rgb = new Uint8Array(v.width * v.height * 3);
-  st.paint(rgb, spacetimeNorm(st), 0, v.height - 1, 3);
+  st.paint(rgb, spacetimeNorm(st), 0, v.height - 1, 3, "magnitude");
   return encodePng(rgb, v.width, v.height);
 }
 
