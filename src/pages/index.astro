@@ -42,17 +42,19 @@ const tagChips = TAG_IDS.map((id) => ({ id, label: TAGS[id].label, n: count((e) 
   </section>
 
   <div class="container">
-    <p class="hero-note">
-      <span class="bar-key" aria-hidden="true"></span>
-      上の図は <a href={`/phenomena/${HERO_SLUG}/`}>{heroEntry?.data.title ?? HERO_SLUG}</a> と同じ solver でビルドのたびに計算した時空図です。横が位置
-      <i class="mi">x</i>（−40 から 40）、縦が時刻 <i class="mi">t</i>（下の 0 から上の 40）、明るさが <span class="num">|<i class="mi">u</i>|</span>。
-    </p>
-
-    <div class="intro prose">
-      <p>
-        非線形 Schrödinger 方程式や KdV 方程式などの分散型方程式で起きる現象を、計算して見せます。
-        各ページには、動かせるシミュレーションと解説、そしてその計算が数値の誤りでないことを確かめた検証の記録を載せています。
+    <div class="lede">
+      <p class="hero-note">
+        <span class="bar-key" aria-hidden="true"></span>
+        上の図は <a href={`/phenomena/${HERO_SLUG}/`}>{heroEntry?.data.title ?? HERO_SLUG}</a> と同じ solver でビルドのたびに計算した時空図です。横が位置
+        <i class="mi">x</i>（−40 から 40）、縦が時刻 <i class="mi">t</i>（下の 0 から上の 40）、明るさが <span class="num">|<i class="mi">u</i>|</span>。
       </p>
+
+      <div class="intro prose">
+        <p>
+          非線形 Schrödinger 方程式や KdV 方程式などの分散型方程式で起きる現象を、計算して見せます。
+          各ページには、動かせるシミュレーションと解説、そしてその計算が数値の誤りでないことを確かめた検証の記録を載せています。
+        </p>
+      </div>
     </div>
 
     <div class="list-head" id="phenomena">
