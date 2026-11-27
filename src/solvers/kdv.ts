@@ -23,7 +23,16 @@ import type { ComplexField, Grid1D } from "./grid";
  * Nyquist 波数の成分は u が実数であることと両立しないので、その波数は 0 として扱う（Program 27 と同じ）。
  * 安定性: 非線形項の固有値はおよそ 6 max|u| · k_max で、RK4 の虚軸上の安定限界は約 2.8 なので
  * h ≲ 2.8 / (6 max|u| k_max) にする。
+ *
+ * 選択肢 dealias: true で、非線形項に 2/3 則のエイリアス除去を入れる（2 乗する前の ŵ と、2 乗した結果の
+ * 両方で |m| > n/3 の波数 m の成分を 0 にする）。急峻な波が長く続く計算（Zabusky–Kruskal の余弦波など）では、除去なしだと
+ * エイリアスで高波数にエネルギーがたまって値が発散する。既定は false（従来どおり）。
  */
+export interface KdvOptions {
+  /** 非線形項に 2/3 則のエイリアス除去を入れる（既定 false） */
+  dealias?: boolean;
+}
+
 export class KdvSolver {
   readonly grid: Grid1D;
   readonly dt: number;
@@ -31,8 +40,10 @@ export class KdvSolver {
   t = 0;
 
   private readonly fft: FFT;
-  /** Nyquist を 0 にした波数 */
+  /** 非線形項 −3ik(u²)^ に掛ける波数（Nyquist を 0 に。エイリアス除去ありなら |m| > n/3 も 0） */
   private readonly k: Float64Array;
+  /** エイリアス除去ありのとき、残す波数（|m| ≤ n/3）で 1、それ以外で 0。なしなら undefined */
+  private readonly keep: Uint8Array | undefined;
   /** E = e^{ik³h/2} */
   private readonly eRe: Float64Array;
   private readonly eIm: Float64Array;
@@ -49,20 +60,30 @@ export class KdvSolver {
   private readonly sIm: Float64Array;
   private readonly stages: { re: Float64Array; im: Float64Array }[];
 
-  constructor(grid: Grid1D, dt: number) {
+  constructor(grid: Grid1D, dt: number, options: KdvOptions = {}) {
     if (!(dt > 0)) throw new Error(`時間刻みは正にする: dt = ${dt}`);
     this.grid = grid;
     this.dt = dt;
     const n = grid.n;
     this.fft = new FFT(n);
-    this.k = wavenumbers(n, grid.length);
-    this.k[n / 2] = 0;
+    const kLinear = wavenumbers(n, grid.length);
+    kLinear[n / 2] = 0;
+    this.k = kLinear.slice();
+    if (options.dealias) {
+      // wavenumbers の並びは m = 0, 1, …, n/2 − 1, −n/2, …, −1
+      this.keep = new Uint8Array(n);
+      for (let j = 0; j < n; j++) {
+        const m = j < n / 2 ? j : j - n;
+        if (3 * Math.abs(m) > n) this.k[j] = 0;
+        else this.keep[j] = 1;
+      }
+    }
     this.eRe = new Float64Array(n);
     this.eIm = new Float64Array(n);
     this.e2Re = new Float64Array(n);
     this.e2Im = new Float64Array(n);
     for (let j = 0; j < n; j++) {
-      const k3 = this.k[j]! ** 3;
+      const k3 = kLinear[j]! ** 3;
       this.eRe[j] = Math.cos((k3 * dt) / 2);
       this.eIm[j] = Math.sin((k3 * dt) / 2);
       this.e2Re[j] = Math.cos(k3 * dt);
@@ -113,6 +134,16 @@ export class KdvSolver {
     const { wRe, wIm, k } = this;
     const n = this.grid.n;
     const h = this.dt;
+    const keep = this.keep;
+    if (keep) {
+      // 2/3 則: 2 乗する前に高い波数を落とすと、残す波数 |m| ≤ n/3 へのエイリアスが起きない
+      for (let j = 0; j < n; j++) {
+        if (!keep[j]) {
+          wRe[j] = 0;
+          wIm[j] = 0;
+        }
+      }
+    }
     this.fft.inverse(wRe, wIm);
     for (let j = 0; j < n; j++) {
       const u = wRe[j]!;
