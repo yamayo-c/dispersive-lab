@@ -1101,6 +1101,11 @@ h3 {
   cursor: pointer;
 }
 
+/* 当たり判定は svg 全体で取る（PhaseDiagram.tsx）。中の図形・線・文字はポインタを受けない */
+.pd .pd-hit * {
+  pointer-events: none;
+}
+
 .pd-detail {
   margin-top: 16px;
   font-size: var(--step--1);
@@ -1109,8 +1114,16 @@ h3 {
 .pd-tip {
   font-size: var(--step--1);
   color: var(--ink);
-  min-height: 1.75em;
+  /* 案内文と値の文のどちらが何行になっても下の図がずれないように、2 行分を確保する */
+  line-height: 1.75;
+  min-height: calc(2 * 1.75em);
+  font-variant-numeric: tabular-nums;
   margin-bottom: 8px;
+}
+
+/* 記号の字を大きくしても行の高さを押し上げない */
+.pd-tip .pd-cal {
+  line-height: 1;
 }
 
 .pd-empty {
