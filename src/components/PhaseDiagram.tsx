@@ -102,10 +102,35 @@ function fmt(v: number, d = 3) {
   return Number(v.toFixed(d)).toString();
 }
 
+/** 桁数を固定した数値（文言の欄の幅が値ごとに揺れないように。負号は U+2212） */
+function fixed(v: number, d: number) {
+  const s = v.toFixed(d);
+  return s.startsWith("-") ? (Number(s) === 0 ? s.slice(1) : `−${s.slice(1)}`) : s;
+}
+
+type Pick = { row: number; i: number };
+
+const samePick = (a: Pick | null, b: Pick | null) => a === b || (!!a && !!b && a.row === b.row && a.i === b.i);
+
+/** ポインタの位置を SVG の座標（viewBox）に直す。scale は viewBox の 1 単位が画面で何 px か */
+function toSvg(e: { currentTarget: SVGSVGElement; clientX: number; clientY: number }) {
+  const ctm = e.currentTarget.getScreenCTM();
+  if (!ctm) return null;
+  const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+  return { x: pt.x, y: pt.y, scale: Math.hypot(ctm.a, ctm.b) };
+}
+
+/** 散布図で点を拾う半径（画面上の px） */
+const PICK_RADIUS_PX = 12;
+
 export default function PhaseDiagram() {
   const data = useData();
-  const [sel, setSel] = useState<{ row: number; i: number } | null>(null);
-  const [hover, setHover] = useState<{ row: number; i: number } | null>(null);
+  const [sel, setSel] = useState<Pick | null>(null);
+  const [hover, setHover] = useState<Pick | null>(null);
+  // 選ぶ点が変わったときだけ描き直す（同じ点なら前の値を返して React に描画を省かせる）
+  const hoverTo = (t: Pick | null) => {
+    if (t) setHover((prev) => (samePick(prev, t) ? prev : t));
+  };
 
   const curves = useMemo(() => {
     if (!data || "error" in data) return null;
@@ -181,6 +206,54 @@ export default function PhaseDiagram() {
   const forbiddenPath =
     `M ${qx(X.lo)} ${qy(0)} ` + forbidden.map(([x, y]) => `L ${qx(x).toFixed(1)} ${qy(y).toFixed(1)}`).join(" ") + ` L ${qx(X.lo)} ${qy(Y.hi)} Z`;
 
+  // 当たり判定は図全体で 1 つ。マスや点ごとに enter/leave を付けると、隙間や重なった線に入るたびに
+  // 表示が案内文に戻り、文言の欄の高さが変わって図がずれ、また別のマスに入る…の往復で点滅する。
+  /** 左の地図: 格子の範囲内なら、いちばん近い格子点（範囲外は null） */
+  const pickMap = (x: number, y: number): Pick | null => {
+    if (x < M.l || x > W - M.r || y < M.t || y > H - M.b) return null;
+    const p = pMin - dp / 2 + ((x - M.l) / (W - M.l - M.r)) * (pMax - pMin + dp);
+    const g = gMin - dg / 2 + ((H - M.b - y) / (H - M.t - M.b)) * (gMax - gMin + dg);
+    let row = 0;
+    rows.forEach((r, k) => {
+      if (Math.abs(r.gamma - g) < Math.abs(rows[row]!.gamma - g)) row = k;
+    });
+    const pts = rows[row]!.points;
+    if (pts.length === 0) return null;
+    let i = 0;
+    pts.forEach((pt, k) => {
+      if (Math.abs(pt.p - p) < Math.abs(pts[i]!.p - p)) i = k;
+    });
+    return { row, i };
+  };
+  /** 右の散布図: 画面上で PICK_RADIUS_PX 以内のいちばん近い点（なければ null） */
+  const pickScatter = (x: number, y: number, scale: number): Pick | null => {
+    let best: Pick | null = null;
+    let bd = (PICK_RADIUS_PX / scale) ** 2;
+    rows.forEach((row, ri) =>
+      row.points.forEach((pt, i) => {
+        if (pt.x > X.hi || pt.x < X.lo || pt.y > Y.hi) return;
+        const d = (qx(pt.x) - x) ** 2 + (qy(pt.y) - y) ** 2;
+        if (d < bd) {
+          bd = d;
+          best = { row: ri, i };
+        }
+      }),
+    );
+    return best;
+  };
+  const handlers = (pick: (x: number, y: number, scale: number) => Pick | null) => ({
+    onPointerMove: (e: React.PointerEvent<SVGSVGElement>) => {
+      const s = toSvg(e);
+      if (s) hoverTo(pick(s.x, s.y, s.scale));
+    },
+    onPointerLeave: () => setHover(null),
+    onClick: (e: React.MouseEvent<SVGSVGElement>) => {
+      const s = toSvg(e);
+      const t = s && pick(s.x, s.y, s.scale);
+      if (t) setSel(t);
+    },
+  });
+
   const active = hover ?? sel;
   const activePoint = active ? rows[active.row]!.points[active.i]! : null;
   const activeGamma = active ? rows[active.row]!.gamma : 0;
@@ -218,8 +291,8 @@ export default function PhaseDiagram() {
       <div className="pd-tip" aria-live="polite">
         {activePoint ? (
           <>
-            {`p = ${fmt(activePoint.p, 2)}, γ = ${fmt(activeGamma, 2)}: ${LABEL[activePoint.outcome]}（t = ${fmt(activePoint.t, 2)} で判定）, `}
-            {ME} = {fmt(activePoint.x)}, {G} = {fmt(activePoint.y)}
+            {`p = ${fixed(activePoint.p, 2)}, γ = ${fixed(activeGamma, 2)}: ${LABEL[activePoint.outcome]}（t = ${fixed(activePoint.t, 2)} で判定）, `}
+            {ME} = {fixed(activePoint.x, 3)}, {G} = {fixed(activePoint.y, 3)}
           </>
         ) : (
           "点にカーソルを合わせる（タップする）と、値と時間変化が出ます。"
@@ -227,12 +300,11 @@ export default function PhaseDiagram() {
       </div>
       <div className="pd-grid">
         <figure>
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="初期値の大きさ p と位相の曲がり γ ごとの判定の地図">
+          <svg className="pd-hit" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="初期値の大きさ p と位相の曲がり γ ごとの判定の地図" {...handlers(pickMap)}>
             {rows.map((row, ri) =>
               row.points.map((pt, i) => (
                 <rect
                   key={`${ri}-${i}`}
-                  className="pd-hit"
                   x={px(pt.p) - cellW / 2 + 1}
                   y={py(row.gamma) - cellH / 2 + 1}
                   width={cellW - 2}
@@ -242,9 +314,6 @@ export default function PhaseDiagram() {
                   stroke={pt.outcome === "undecided" ? COLOR.undecided : "none"}
                   strokeWidth={pt.outcome === "undecided" ? 1.5 : 0}
                   opacity={active && (active.row !== ri || active.i !== i) ? 0.75 : 1}
-                  onMouseEnter={() => setHover({ row: ri, i })}
-                  onMouseLeave={() => setHover(null)}
-                  onClick={() => setSel({ row: ri, i })}
                 />
               )),
             )}
@@ -292,7 +361,7 @@ export default function PhaseDiagram() {
           </figcaption>
         </figure>
         <figure>
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="同じ点を、質量とエネルギーの積の比（横軸）と、L2 ノルムと勾配の L2 ノルムの積の比（縦軸）の平面に置いた図">
+          <svg className="pd-hit" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="同じ点を、質量とエネルギーの積の比（横軸）と、L2 ノルムと勾配の L2 ノルムの積の比（縦軸）の平面に置いた図" {...handlers(pickScatter)}>
             <rect x={qx(X.lo)} y={qy(1)} width={qx(1) - qx(X.lo)} height={qy(0) - qy(1)} fill="var(--pd-region)" />
             <path d={forbiddenPath} fill="var(--pd-forbidden)" />
             {[0, 1, 2].map((x) => (
@@ -303,16 +372,7 @@ export default function PhaseDiagram() {
             {rows.map((row, ri) =>
               row.points.map((pt, i) =>
                 pt.x > X.hi || pt.x < X.lo || pt.y > Y.hi ? null : (
-                  <g
-                    key={`${ri}-${i}`}
-                    className="pd-hit"
-                    onMouseEnter={() => setHover({ row: ri, i })}
-                    onMouseLeave={() => setHover(null)}
-                    onClick={() => setSel({ row: ri, i })}
-                  >
-                    <circle cx={qx(pt.x)} cy={qy(pt.y)} r={7} fill="transparent" />
-                    <Marker outcome={pt.outcome} cx={qx(pt.x)} cy={qy(pt.y)} size={active && active.row === ri && active.i === i ? 10 : 7} />
-                  </g>
+                  <Marker key={`${ri}-${i}`} outcome={pt.outcome} cx={qx(pt.x)} cy={qy(pt.y)} size={active && active.row === ri && active.i === i ? 10 : 7} />
                 ),
               ),
             )}
